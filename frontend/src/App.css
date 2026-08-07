@@ -1,0 +1,19 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #f8f5f2;
+}
+
+.title {
+  font-size: 3rem;
+  color: #5d4037;
+  margin-bottom: 15px;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: #555;
+}
