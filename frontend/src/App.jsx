@@ -1,20 +1,22 @@
+import { Routes, Route } from "react-router-dom";
+
+import Navbar from "./components/layout/Navbar";
+
+import Home from "./pages/Home/Home";
+import About from "./pages/About/About";
+import Products from "./pages/Products/Products";
+
 function App() {
   return (
-    <div className="min-h-screen bg-amber-50 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold text-amber-900">
-          🍫 Homemade Chocolate Shop
-        </h1>
+    <>
+      <Navbar />
 
-        <p className="mt-4 text-lg text-gray-700">
-          Tailwind CSS is working successfully!
-        </p>
-
-        <button className="mt-6 rounded-lg bg-amber-700 px-6 py-3 text-white hover:bg-amber-800 transition">
-          Explore Chocolates
-        </button>
-      </div>
-    </div>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/products" element={<Products />} />
+      </Routes>
+    </>
   );
 }
 
