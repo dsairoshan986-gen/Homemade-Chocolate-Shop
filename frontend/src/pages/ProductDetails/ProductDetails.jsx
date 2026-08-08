@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useCart } from "../../context/CartContext";
 
 import darkTruffle from "../../assets/images/products/dark-truffle.jpg";
 import milkChocolate from "../../assets/images/products/milk-chocolate.jpg";
@@ -15,10 +16,12 @@ const imageMap = {
 
 function ProductDetails() {
   const { id } = useParams();
+  const { addToCart } = useCart();
 
   const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [added, setAdded] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -64,10 +67,20 @@ function ProductDetails() {
 
   const image = imageMap[product.name] || darkTruffle;
 
+  const handleAddToCart = () => {
+    addToCart(product, quantity);
+    setAdded(true);
+
+    setTimeout(() => {
+      setAdded(false);
+    }, 2000);
+  };
+
   return (
     <section className="min-h-screen bg-[#fffaf0] py-16 px-6">
       <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
 
+        {/* Product Image */}
         <div>
           <img
             src={image}
@@ -76,6 +89,7 @@ function ProductDetails() {
           />
         </div>
 
+        {/* Product Information */}
         <div>
           <p className="text-amber-700 font-semibold uppercase tracking-wide">
             Premium Handmade Chocolate
@@ -100,7 +114,9 @@ function ProductDetails() {
             </span>
           </p>
 
+          {/* Quantity */}
           <div className="flex items-center gap-4 mt-8">
+
             <button
               onClick={() =>
                 setQuantity((q) => Math.max(1, q - 1))
@@ -124,13 +140,18 @@ function ProductDetails() {
             >
               +
             </button>
+
           </div>
 
-          <button className="mt-8 w-full bg-amber-700 text-white py-4 rounded-xl text-lg font-semibold hover:bg-amber-800 transition">
-            Add to Cart
+          {/* Add To Cart */}
+          <button
+            onClick={handleAddToCart}
+            className="mt-8 w-full bg-amber-700 text-white py-4 rounded-xl text-lg font-semibold hover:bg-amber-800 transition"
+          >
+            {added ? "✓ Added to Cart" : "Add to Cart"}
           </button>
-        </div>
 
+        </div>
       </div>
     </section>
   );

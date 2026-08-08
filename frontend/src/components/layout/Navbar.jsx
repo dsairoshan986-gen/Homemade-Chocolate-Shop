@@ -1,70 +1,86 @@
-import {
-  FaSearch,
-  FaHeart,
-  FaShoppingCart,
-  FaUser,
-} from "react-icons/fa";
-
 import { Link } from "react-router-dom";
+import { useCart } from "../../context/CartContext";
 
 function Navbar() {
+  const { cartCount } = useCart();
+
   return (
-    <nav className="bg-amber-900 text-white shadow-md">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <nav className="bg-amber-800 text-white px-6 py-3">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
 
         {/* Logo */}
-        <div className="text-2xl font-bold tracking-wide">
-          🍫 Chocolate Shop
-        </div>
+        <Link
+          to="/"
+          className="flex items-center gap-3 text-2xl font-bold"
+        >
+          <span>🍫</span>
+          <span>Chocolate Shop</span>
+        </Link>
 
-        {/* Navigation Links */}
-        <ul className="hidden md:flex items-center gap-8 font-medium">
+        {/* Navigation */}
+        <div className="flex items-center gap-8">
 
-          <li>
-            <Link
-              to="/"
-              className="hover:text-amber-300 transition"
-            >
-              Home
-            </Link>
-          </li>
+          <Link
+            to="/"
+            className="hover:text-amber-200 transition"
+          >
+            Home
+          </Link>
 
-          <li>
-            <Link
-              to="/about"
-              className="hover:text-amber-300 transition"
-            >
-              About
-            </Link>
-          </li>
+          <Link
+            to="/about"
+            className="hover:text-amber-200 transition"
+          >
+            About
+          </Link>
 
-          <li>
-            <Link
-              to="/products"
-              className="hover:text-amber-300 transition"
-            >
-              Products
-            </Link>
-          </li>
+          <Link
+            to="/products"
+            className="hover:text-amber-200 transition"
+          >
+            Products
+          </Link>
 
-          <li className="cursor-pointer hover:text-amber-300 transition">
+          <a
+            href="#contact"
+            className="hover:text-amber-200 transition"
+          >
             Contact
-          </li>
+          </a>
 
-        </ul>
+        </div>
 
         {/* Icons */}
-        <div className="flex items-center gap-5 text-xl">
+        <div className="flex items-center gap-6 text-xl">
 
-          <FaSearch className="cursor-pointer hover:text-amber-300 transition" />
+          <span className="cursor-pointer">
+            🔍
+          </span>
 
-          <FaHeart className="cursor-pointer hover:text-amber-300 transition" />
+          <span className="cursor-pointer">
+            ❤️
+          </span>
 
-          <FaShoppingCart className="cursor-pointer hover:text-amber-300 transition" />
+          {/* Cart */}
+          <Link
+            to="/cart"
+            className="relative cursor-pointer"
+          >
+            🛒
 
-          <FaUser className="cursor-pointer hover:text-amber-300 transition" />
+            {cartCount > 0 && (
+              <span className="absolute -top-3 -right-3 bg-red-600 text-white text-xs font-bold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1">
+                {cartCount}
+              </span>
+            )}
+          </Link>
+
+          <span className="cursor-pointer">
+            👤
+          </span>
 
         </div>
+
       </div>
     </nav>
   );
