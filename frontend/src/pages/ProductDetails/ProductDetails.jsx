@@ -34,6 +34,8 @@ function ProductDetails() {
 
         if (result.success) {
           setProduct(result.data);
+        } else {
+          console.error("Product not found:", result.message);
         }
       } catch (error) {
         console.error("Failed to fetch product:", error);
@@ -69,6 +71,7 @@ function ProductDetails() {
 
   const handleAddToCart = () => {
     addToCart(product, quantity);
+
     setAdded(true);
 
     setTimeout(() => {
@@ -77,7 +80,7 @@ function ProductDetails() {
   };
 
   return (
-    <section className="min-h-screen bg-[#fffaf0] py-16 px-6">
+    <section className="min-h-screen bg-[#fffaf2] py-12 px-6">
       <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
 
         {/* Product Image */}
@@ -104,7 +107,7 @@ function ProductDetails() {
           </p>
 
           <p className="text-4xl font-bold text-red-600 mt-6">
-            ₹ {product.price}
+            ₹ {Number(product.price).toFixed(2)}
           </p>
 
           <p className="text-gray-700 mt-4">
@@ -118,6 +121,7 @@ function ProductDetails() {
           <div className="flex items-center gap-4 mt-8">
 
             <button
+              type="button"
               onClick={() =>
                 setQuantity((q) => Math.max(1, q - 1))
               }
@@ -131,9 +135,10 @@ function ProductDetails() {
             </span>
 
             <button
+              type="button"
               onClick={() =>
                 setQuantity((q) =>
-                  Math.min(product.stock, q + 1)
+                  Math.min(Number(product.stock), q + 1)
                 )
               }
               className="w-10 h-10 rounded-lg bg-amber-200 text-amber-900 text-xl"
@@ -145,6 +150,7 @@ function ProductDetails() {
 
           {/* Add To Cart */}
           <button
+            type="button"
             onClick={handleAddToCart}
             className="mt-8 w-full bg-amber-700 text-white py-4 rounded-xl text-lg font-semibold hover:bg-amber-800 transition"
           >

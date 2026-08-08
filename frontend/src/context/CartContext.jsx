@@ -27,6 +27,7 @@ export function CartProvider({ children }) {
     );
   }, [cartItems]);
 
+  // Add product to cart
   const addToCart = (product, quantity = 1) => {
     setCartItems((currentItems) => {
       const existingItem = currentItems.find(
@@ -54,6 +55,7 @@ export function CartProvider({ children }) {
     });
   };
 
+  // Remove product
   const removeFromCart = (productId) => {
     setCartItems((currentItems) =>
       currentItems.filter(
@@ -62,6 +64,7 @@ export function CartProvider({ children }) {
     );
   };
 
+  // Update quantity
   const updateQuantity = (productId, quantity) => {
     if (quantity <= 0) {
       removeFromCart(productId);
@@ -80,15 +83,18 @@ export function CartProvider({ children }) {
     );
   };
 
+  // Clear cart
   const clearCart = () => {
     setCartItems([]);
   };
 
+  // Total number of products
   const cartCount = cartItems.reduce(
     (total, item) => total + item.quantity,
     0
   );
 
+  // Total price
   const cartTotal = cartItems.reduce(
     (total, item) =>
       total + Number(item.price) * item.quantity,
