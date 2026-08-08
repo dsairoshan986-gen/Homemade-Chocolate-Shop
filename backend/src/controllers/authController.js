@@ -1,10 +1,6 @@
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
-
-// ========================================
-// REGISTER USER
-// ========================================
 
 const register = async (req, res) => {
   try {
@@ -18,17 +14,9 @@ const register = async (req, res) => {
       });
     }
 
-    // Check password length
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: "Password must be at least 6 characters",
-      });
-    }
-
     // Check if user already exists
     const existingUser = await pool.query(
-      "SELECT id FROM users WHERE email = $1",
+      "SELECT * FROM users WHERE email = $1",
       [email]
     );
 
@@ -44,11 +32,9 @@ const register = async (req, res) => {
 
     // Insert user
     const result = await pool.query(
-      `
-      INSERT INTO users (name, email, password)
-      VALUES ($1, $2, $3)
-      RETURNING id, name, email, created_at
-      `,
+      `INSERT INTO users (name, email, password)
+       VALUES ($1, $2, $3)
+       RETURNING id, name, email, created_at`,
       [name, email, hashedPassword]
     );
 
@@ -66,16 +52,16 @@ const register = async (req, res) => {
       }
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Registration successful",
       token,
       user,
     });
   } catch (error) {
-    console.error("Register Error:", error);
+    console.error("Registration Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Registration failed",
       error: error.message,
@@ -83,15 +69,11 @@ const register = async (req, res) => {
   }
 };
 
-// ========================================
-// LOGIN USER
-// ========================================
 
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -99,7 +81,6 @@ const login = async (req, res) => {
       });
     }
 
-    // Find user
     const result = await pool.query(
       "SELECT * FROM users WHERE email = $1",
       [email]
@@ -114,7 +95,6 @@ const login = async (req, res) => {
 
     const user = result.rows[0];
 
-    // Compare password
     const passwordMatch = await bcrypt.compare(
       password,
       user.password
@@ -127,7 +107,6 @@ const login = async (req, res) => {
       });
     }
 
-    // Create JWT
     const token = jwt.sign(
       {
         id: user.id,
@@ -139,7 +118,7 @@ const login = async (req, res) => {
       }
     );
 
-    res.json({
+    return res.json({
       success: true,
       message: "Login successful",
       token,
@@ -149,16 +128,18 @@ const login = async (req, res) => {
         email: user.email,
       },
     });
+
   } catch (error) {
     console.error("Login Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Login failed",
       error: error.message,
     });
   }
 };
+
 
 module.exports = {
   register,
