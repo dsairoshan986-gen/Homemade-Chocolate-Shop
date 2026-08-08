@@ -8,34 +8,36 @@ function ProductCard({ product }) {
     "Dark Chocolate Truffles": darkTruffle,
     "Milk Chocolate": milkChocolate,
     "White Chocolate": whiteChocolate,
-    "Ferrero": ferrero,
+    "Ferrero Chocolate": ferrero,
   };
 
   const image = imageMap[product.name] || darkTruffle;
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-5 hover:shadow-xl transition">
+    <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition duration-300">
       <img
         src={image}
         alt={product.name}
-        className="w-full h-52 object-cover rounded-lg"
+        className="w-full h-52 object-cover"
       />
 
-      <h3 className="text-2xl font-bold mt-4 text-amber-900">
-        {product.name}
-      </h3>
+      <div className="p-5">
+        <h3 className="text-2xl font-bold text-amber-900">
+          {product.name}
+        </h3>
 
-      <p className="text-gray-600 mt-2">
-        {product.description}
-      </p>
+        <p className="text-gray-600 mt-2">
+          {product.description}
+        </p>
 
-      <p className="text-xl font-bold text-red-600 mt-4">
-        ₹ {product.price}
-      </p>
+        <p className="text-xl font-bold text-red-600 mt-4">
+          ₹ {product.price}
+        </p>
 
-      <button className="mt-4 w-full bg-amber-700 text-white py-2 rounded-lg hover:bg-amber-800">
-        Add to Cart
-      </button>
+        <button className="mt-4 w-full bg-amber-700 text-white py-2 rounded-lg hover:bg-amber-800 transition">
+          Add to Cart
+        </button>
+      </div>
     </div>
   );
 }
