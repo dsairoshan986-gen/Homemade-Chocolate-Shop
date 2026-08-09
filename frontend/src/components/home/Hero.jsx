@@ -1,45 +1,101 @@
+import React from "react";
+import { Link } from "react-router-dom";
+import "./Hero.css";
+
 function Hero() {
   return (
-    <section className="bg-amber-50 min-h-[90vh] flex items-center">
-      <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
+    <section className="hero">
+
+      <div className="hero-container">
 
         {/* Left Content */}
-        <div>
-          <p className="text-amber-700 font-semibold uppercase tracking-widest mb-3">
-            Premium Handmade Chocolates
-          </p>
 
-          <h1 className="text-5xl md:text-6xl font-extrabold text-amber-900 leading-tight">
-            Crafted with Love,
+        <div className="hero-content">
+
+          <span className="hero-tag">
+            🍫 Handmade With Love
+          </span>
+
+          <h1>
+            Delicious Chocolate,
             <br />
-            Wrapped in Happiness
+            Made Just For You
           </h1>
 
-          <p className="mt-6 text-lg text-gray-700 leading-8">
-            Experience rich, handcrafted chocolates made from premium
-            ingredients. Every bite is carefully created to bring joy,
-            sweetness, and unforgettable memories.
+          <p>
+            Discover handcrafted chocolates made with premium
+            ingredients, rich flavors, and lots of love.
           </p>
 
-          <div className="mt-8 flex gap-4">
-            <button className="bg-amber-900 text-white px-6 py-3 rounded-lg hover:bg-amber-800 transition">
-              Shop Now
-            </button>
+          <div className="hero-buttons">
 
-            <button className="border-2 border-amber-900 text-amber-900 px-6 py-3 rounded-lg hover:bg-amber-900 hover:text-white transition">
-              Learn More
-            </button>
+            <Link
+              to="/products"
+              className="hero-primary-button"
+            >
+              Shop Chocolates
+            </Link>
+
+            <Link
+              to="/about"
+              className="hero-secondary-button"
+            >
+              Our Story
+            </Link>
+
           </div>
+
+          <div className="hero-features">
+
+            <div>
+              <strong>100%</strong>
+              <span>Homemade</span>
+            </div>
+
+            <div>
+              <strong>Premium</strong>
+              <span>Ingredients</span>
+            </div>
+
+            <div>
+              <strong>Fresh</strong>
+              <span>Every Day</span>
+            </div>
+
+          </div>
+
         </div>
 
-        {/* Right Content */}
-        <div className="flex justify-center">
-          <div className="w-80 h-80 rounded-full bg-amber-200 flex items-center justify-center text-8xl shadow-xl">
-            🍫
+
+        {/* Right Image */}
+
+        <div className="hero-image-container">
+
+          <div className="hero-circle"></div>
+
+          <img
+            src="/images/dark-truffle.jpg"
+            alt="Handmade chocolate truffles"
+            className="hero-image"
+          />
+
+          <div className="hero-floating-card">
+
+            <span className="floating-icon">
+              ⭐
+            </span>
+
+            <div>
+              <strong>Made With Love</strong>
+              <small>Premium Homemade Chocolate</small>
+            </div>
+
           </div>
+
         </div>
 
       </div>
+
     </section>
   );
 }

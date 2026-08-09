@@ -1,49 +1,114 @@
+import React from "react";
+import "./Testimonials.css";
+
+const testimonials = [
+  {
+    id: 1,
+    name: "Priya",
+    location: "Chennai",
+    rating: 5,
+    review:
+      "The chocolates were absolutely delicious! The dark chocolate truffles were rich, fresh and beautifully packed.",
+  },
+  {
+    id: 2,
+    name: "Rahul",
+    location: "Hyderabad",
+    rating: 5,
+    review:
+      "I ordered chocolates for my friend's birthday and everyone loved them. The quality and taste were excellent.",
+  },
+  {
+    id: 3,
+    name: "Ananya",
+    location: "Bengaluru",
+    rating: 5,
+    review:
+      "Amazing homemade chocolates! They tasted fresh and premium. I will definitely order again.",
+  },
+];
+
 function Testimonials() {
-  const reviews = [
-    {
-      id: 1,
-      name: "Priya",
-      review: "The chocolates were absolutely delicious and beautifully packed!",
-    },
-    {
-      id: 2,
-      name: "Rahul",
-      review: "Perfect for gifting. My family loved every bite!",
-    },
-    {
-      id: 3,
-      name: "Sneha",
-      review: "Fresh, premium quality, and amazing customer service.",
-    },
-  ];
-
   return (
-    <section className="py-20 bg-amber-100">
-      <div className="max-w-7xl mx-auto px-6">
-        <h2 className="text-4xl font-bold text-center text-amber-900 mb-12">
-          What Our Customers Say
-        </h2>
+    <section className="testimonials-section">
+      <div className="testimonials-container">
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {reviews.map((review) => (
+        {/* Heading */}
+
+        <div className="testimonials-heading">
+
+          <span className="testimonials-tag">
+            💬 Customer Reviews
+          </span>
+
+          <h2>
+            What Our Customers Say
+          </h2>
+
+          <p>
+            Our customers make every chocolate
+            moment sweeter.
+          </p>
+
+        </div>
+
+
+        {/* Testimonials */}
+
+        <div className="testimonials-grid">
+
+          {testimonials.map((testimonial) => (
             <div
-              key={review.id}
-              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition duration-300"
+              className="testimonial-card"
+              key={testimonial.id}
             >
-              <div className="text-yellow-500 text-xl mb-4">
-                ⭐⭐⭐⭐⭐
+
+              {/* Quote */}
+
+              <div className="testimonial-quote">
+                "
               </div>
 
-              <p className="text-gray-700 italic">
-                "{review.review}"
+
+              {/* Rating */}
+
+              <div className="testimonial-rating">
+                {"⭐".repeat(testimonial.rating)}
+              </div>
+
+
+              {/* Review */}
+
+              <p className="testimonial-review">
+                {testimonial.review}
               </p>
 
-              <h3 className="mt-6 text-lg font-bold text-amber-900">
-                — {review.name}
-              </h3>
+
+              {/* Customer */}
+
+              <div className="testimonial-customer">
+
+                <div className="testimonial-avatar">
+                  {testimonial.name.charAt(0)}
+                </div>
+
+                <div>
+                  <h3>
+                    {testimonial.name}
+                  </h3>
+
+                  <span>
+                    {testimonial.location}
+                  </span>
+                </div>
+
+              </div>
+
             </div>
           ))}
+
         </div>
+
       </div>
     </section>
   );

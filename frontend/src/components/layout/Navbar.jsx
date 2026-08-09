@@ -1,88 +1,114 @@
-import { Link } from "react-router-dom";
-import { useCart } from "../../context/CartContext";
+import React from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import "./Navbar.css";
 
 function Navbar() {
-  const { cartCount } = useCart();
+  const navigate = useNavigate();
+
+  const token = localStorage.getItem("token");
+  const user = localStorage.getItem("user");
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    navigate("/login");
+  };
 
   return (
-    <nav className="bg-amber-800 text-white px-6 py-3">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <header className="navbar">
+      <div className="navbar-container">
 
         {/* Logo */}
-        <Link
-          to="/"
-          className="flex items-center gap-3 text-2xl font-bold"
-        >
-          <span>🍫</span>
-          <span>Chocolate Shop</span>
+        <Link to="/" className="navbar-logo">
+          <span className="logo-icon">🍫</span>
+          <span className="logo-text">Chocolate Shop</span>
         </Link>
 
         {/* Navigation */}
-        <div className="flex items-center gap-8">
+        <nav className="navbar-links">
 
-          <Link
+          <NavLink
             to="/"
-            className="hover:text-amber-200 transition"
+            className={({ isActive }) =>
+              isActive ? "nav-link active" : "nav-link"
+            }
           >
             Home
-          </Link>
+          </NavLink>
 
-          <Link
+          <NavLink
             to="/about"
-            className="hover:text-amber-200 transition"
+            className={({ isActive }) =>
+              isActive ? "nav-link active" : "nav-link"
+            }
           >
             About
-          </Link>
+          </NavLink>
 
-          <Link
+          <NavLink
             to="/products"
-            className="hover:text-amber-200 transition"
+            className={({ isActive }) =>
+              isActive ? "nav-link active" : "nav-link"
+            }
           >
             Products
-          </Link>
+          </NavLink>
 
-          <a
-            href="#contact"
-            className="hover:text-amber-200 transition"
-          >
-            Contact
-          </a>
-
-        </div>
-
-        {/* Icons */}
-        <div className="flex items-center gap-6 text-xl">
-
-          <span className="cursor-pointer">
-            🔍
-          </span>
-
-          <span className="cursor-pointer">
-            ❤️
-          </span>
-
-          {/* Cart */}
-          <Link
+          <NavLink
             to="/cart"
-            className="relative cursor-pointer"
+            className={({ isActive }) =>
+              isActive ? "nav-link active" : "nav-link"
+            }
           >
-            🛒
+            🛒 Cart
+          </NavLink>
 
-            {cartCount > 0 && (
-              <span className="absolute -top-3 -right-3 bg-red-600 text-white text-xs font-bold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1">
-                {cartCount}
+          {token && (
+            <NavLink
+              to="/orders"
+              className={({ isActive }) =>
+                isActive ? "nav-link active" : "nav-link"
+              }
+            >
+              📦 My Orders
+            </NavLink>
+          )}
+
+        </nav>
+
+        {/* Right side */}
+        <div className="navbar-actions">
+
+          {token ? (
+            <>
+              <span className="welcome-text">
+                👋 {user ? JSON.parse(user).name : "User"}
               </span>
-            )}
-          </Link>
 
-          <span className="cursor-pointer">
-            👤
-          </span>
+              <button
+                className="logout-btn"
+                onClick={handleLogout}
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="login-btn">
+                Login
+              </Link>
+
+              <Link to="/register" className="register-btn">
+                Register
+              </Link>
+            </>
+          )}
 
         </div>
 
       </div>
-    </nav>
+    </header>
   );
 }
 

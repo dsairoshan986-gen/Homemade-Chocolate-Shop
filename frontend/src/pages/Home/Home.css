@@ -1,0 +1,9 @@
+.home-page {
+  width: 100%;
+  min-height: 100vh;
+  background: #fffaf5;
+}
+
+.home-page section {
+  width: 100%;
+}

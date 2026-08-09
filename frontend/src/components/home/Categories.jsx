@@ -1,60 +1,105 @@
+import React from "react";
+import { Link } from "react-router-dom";
+import "./Categories.css";
+
+import darkTruffle from "../../assets/images/products/dark-truffle.jpg";
+import milkChocolate from "../../assets/images/products/milk-chocolate.jpg";
+import whiteChocolate from "../../assets/images/products/white-chocolate.jpg";
+import ferrero from "../../assets/images/products/ferrero.jpg";
+
+const categories = [
+  {
+    id: 1,
+    name: "Dark Chocolate",
+    description: "Rich, deep and intensely delicious",
+    image: darkTruffle,
+  },
+  {
+    id: 2,
+    name: "Milk Chocolate",
+    description: "Creamy, smooth and wonderfully sweet",
+    image: milkChocolate,
+  },
+  {
+    id: 3,
+    name: "White Chocolate",
+    description: "Smooth, creamy and irresistibly delicate",
+    image: whiteChocolate,
+  },
+  {
+    id: 4,
+    name: "Special Chocolates",
+    description: "Perfect chocolates for every occasion",
+    image: ferrero,
+  },
+];
+
 function Categories() {
-  const categories = [
-    {
-      id: 1,
-      icon: "🍫",
-      title: "Dark Chocolate",
-      description: "Rich cocoa with intense flavor.",
-    },
-    {
-      id: 2,
-      icon: "🥛",
-      title: "Milk Chocolate",
-      description: "Smooth and creamy delight.",
-    },
-    {
-      id: 3,
-      icon: "🤍",
-      title: "White Chocolate",
-      description: "Sweet and buttery goodness.",
-    },
-    {
-      id: 4,
-      icon: "🎁",
-      title: "Gift Boxes",
-      description: "Perfect gifts for every occasion.",
-    },
-  ];
-
   return (
-    <section className="py-20 bg-amber-50">
-      <div className="max-w-7xl mx-auto px-6">
-        <h2 className="text-4xl font-bold text-center text-amber-900 mb-12">
-          Shop by Category
-        </h2>
+    <section className="categories-section">
+      <div className="categories-container">
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {categories.map((category) => (
-            <div
-              key={category.id}
-              className="bg-white rounded-xl shadow-lg p-6 text-center hover:shadow-2xl transition duration-300"
-            >
-              <div className="text-6xl mb-4">{category.icon}</div>
+        {/* Section Heading */}
+        <div className="section-heading">
 
-              <h3 className="text-xl font-bold text-amber-900">
-                {category.title}
-              </h3>
+          <span className="section-tag">
+            🍫 Our Collection
+          </span>
 
-              <p className="text-gray-600 mt-3">
-                {category.description}
-              </p>
+          <h2>
+            Choose Your Favorite Chocolate
+          </h2>
 
-              <button className="mt-6 bg-amber-900 text-white px-5 py-2 rounded-lg hover:bg-amber-800 transition">
-                Explore
-              </button>
-            </div>
-          ))}
+          <p>
+            Explore our delicious collection of handcrafted
+            chocolates made with premium ingredients.
+          </p>
+
         </div>
+
+        {/* Category Cards */}
+        <div className="categories-grid">
+
+          {categories.map((category) => (
+            <Link
+              to="/products"
+              className="category-card"
+              key={category.id}
+            >
+
+              {/* Image */}
+              <div className="category-image-wrapper">
+
+                <img
+                  src={category.image}
+                  alt={category.name}
+                  className="category-image"
+                />
+
+                <div className="category-overlay">
+                  View Chocolates →
+                </div>
+
+              </div>
+
+              {/* Content */}
+              <div className="category-content">
+
+                <h3>
+                  {category.name}
+                </h3>
+
+                <p>
+                  {category.description}
+                </p>
+
+              </div>
+
+            </Link>
+          ))}
+
+        </div>
+
       </div>
     </section>
   );

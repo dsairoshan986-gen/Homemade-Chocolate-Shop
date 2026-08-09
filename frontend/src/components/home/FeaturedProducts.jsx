@@ -1,69 +1,263 @@
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import "./FeaturedProducts.css";
+
+import darkTruffle from "../../assets/images/products/dark-truffle.jpg";
+import milkChocolate from "../../assets/images/products/milk-chocolate.jpg";
+import whiteChocolate from "../../assets/images/products/white-chocolate.jpg";
+import ferrero from "../../assets/images/products/ferrero.jpg";
+
+const API_URL = "http://localhost:5000/api";
+
 function FeaturedProducts() {
-  const products = [
-    {
-      id: 1,
-      name: "Dark Chocolate",
-      price: "₹299",
-      image: "🍫",
-    },
-    {
-      id: 2,
-      name: "Milk Chocolate",
-      price: "₹249",
-      image: "🍬",
-    },
-    {
-      id: 3,
-      name: "Chocolate Truffle",
-      price: "₹399",
-      image: "🍩",
-    },
-    {
-      id: 4,
-      name: "Gift Box",
-      price: "₹599",
-      image: "🎁",
-    },
-  ];
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const getProductImage = (product) => {
+    const name = (product.name || "").toLowerCase();
+
+    if (name.includes("dark")) {
+      return darkTruffle;
+    }
+
+    if (name.includes("milk")) {
+      return milkChocolate;
+    }
+
+    if (name.includes("white")) {
+      return whiteChocolate;
+    }
+
+    if (
+      name.includes("ferrero") ||
+      name.includes("hazelnut")
+    ) {
+      return ferrero;
+    }
+
+    return darkTruffle;
+  };
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch(
+        `${API_URL}/products`
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Failed to fetch products"
+        );
+      }
+
+      setProducts((result.data || []).slice(0, 4));
+    } catch (err) {
+      console.error(
+        "Featured Products Error:",
+        err
+      );
+
+      setError(
+        err.message ||
+          "Unable to load featured products."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <section className="py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-6">
+    <section className="featured-section">
+      <div className="featured-container">
 
-        <h2 className="text-4xl font-bold text-center text-amber-900 mb-12">
-          Featured Chocolates
-        </h2>
+        {/* Heading */}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="featured-heading">
 
-          {products.map((product) => (
-            <div
-              key={product.id}
-              className="bg-amber-50 rounded-xl shadow-lg p-6 text-center hover:scale-105 transition duration-300"
-            >
-              <div className="text-6xl mb-4">
-                {product.image}
-              </div>
+          <span className="featured-tag">
+            ⭐ Customer Favorites
+          </span>
 
-              <h3 className="text-xl font-bold text-amber-900">
-                {product.name}
-              </h3>
+          <h2>
+            Our Featured Chocolates
+          </h2>
 
-              <p className="text-lg text-gray-600 mt-2">
-                {product.price}
-              </p>
-
-              <p className="text-yellow-500 text-xl mt-2">
-                ⭐⭐⭐⭐⭐
-              </p>
-
-              <button className="mt-5 bg-amber-900 text-white px-5 py-2 rounded-lg hover:bg-amber-800 transition">
-                Add to Cart
-              </button>
-            </div>
-          ))}
+          <p>
+            Discover some of our most loved
+            handcrafted chocolates.
+          </p>
 
         </div>
+
+
+        {/* Loading */}
+
+        {loading && (
+          <div className="featured-loading">
+
+            <div className="featured-spinner"></div>
+
+            <p>
+              Loading delicious chocolates...
+            </p>
+
+          </div>
+        )}
+
+
+        {/* Error */}
+
+        {!loading && error && (
+          <div className="featured-error">
+
+            <span>⚠️</span>
+
+            <p>{error}</p>
+
+            <button onClick={fetchProducts}>
+              Try Again
+            </button>
+
+          </div>
+        )}
+
+
+        {/* Empty */}
+
+        {!loading &&
+          !error &&
+          products.length === 0 && (
+            <div className="featured-empty">
+
+              <span>🍫</span>
+
+              <h3>
+                No products available
+              </h3>
+
+              <p>
+                Check back soon for delicious
+                chocolates.
+              </p>
+
+            </div>
+          )}
+
+
+        {/* Products */}
+
+        {!loading &&
+          !error &&
+          products.length > 0 && (
+            <div className="featured-grid">
+
+              {products.map((product) => {
+
+                const price =
+                  Number(product.price) || 0;
+
+                const image =
+                  getProductImage(product);
+
+                return (
+                  <div
+                    className="featured-card"
+                    key={product.id}
+                  >
+
+                    {/* Product Image */}
+
+                    <Link
+                      to={`/products/${product.id}`}
+                      className="featured-image-link"
+                    >
+
+                      <div className="featured-image-wrapper">
+
+                        <img
+                          src={image}
+                          alt={
+                            product.name ||
+                            "Chocolate"
+                          }
+                          className="featured-image"
+                        />
+
+                        <span className="featured-badge">
+                          ⭐ Featured
+                        </span>
+
+                      </div>
+
+                    </Link>
+
+
+                    {/* Product Details */}
+
+                    <div className="featured-content">
+
+                      <h3>
+                        {product.name}
+                      </h3>
+
+                      <p className="featured-description">
+                        {product.description ||
+                          "Delicious handcrafted chocolate made with premium ingredients."}
+                      </p>
+
+
+                      <div className="featured-bottom">
+
+                        <span className="featured-price">
+                          ₹{price.toFixed(2)}
+                        </span>
+
+                        <Link
+                          to={`/products/${product.id}`}
+                          className="featured-button"
+                        >
+                          View Product →
+                        </Link>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+                );
+              })}
+
+            </div>
+          )}
+
+
+        {/* View All */}
+
+        {!loading &&
+          !error &&
+          products.length > 0 && (
+            <div className="featured-view-all">
+
+              <Link
+                to="/products"
+                className="view-all-button"
+              >
+                View All Chocolates →
+              </Link>
+
+            </div>
+          )}
+
       </div>
     </section>
   );

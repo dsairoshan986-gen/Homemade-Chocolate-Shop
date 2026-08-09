@@ -1,26 +1,77 @@
+import React, { useState } from "react";
+import "./Newsletter.css";
+
 function Newsletter() {
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (!email.trim()) {
+      setMessage("Please enter your email address.");
+      return;
+    }
+
+    setMessage(
+      "Thank you for subscribing! 🍫 You'll receive our latest chocolate updates."
+    );
+
+    setEmail("");
+  };
+
   return (
-    <section className="py-20 bg-amber-900 text-white">
-      <div className="max-w-4xl mx-auto text-center px-6">
-        <h2 className="text-4xl font-bold">
-          Stay Updated!
-        </h2>
+    <section className="newsletter-section">
+      <div className="newsletter-container">
 
-        <p className="mt-4 text-lg text-amber-100">
-          Subscribe to receive exclusive offers and new chocolate launches.
-        </p>
-
-        <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-          <input
-            type="email"
-            placeholder="Enter your email"
-            className="px-5 py-3 rounded-lg text-gray-800 w-full sm:w-96"
-          />
-
-          <button className="bg-white text-amber-900 px-6 py-3 rounded-lg font-semibold hover:bg-amber-100 transition">
-            Subscribe
-          </button>
+        <div className="newsletter-icon">
+          🍫
         </div>
+
+        <div className="newsletter-content">
+          <span className="newsletter-tag">
+            ✨ Stay Connected
+          </span>
+
+          <h2>
+            Get Sweet Updates
+          </h2>
+
+          <p>
+            Subscribe to our newsletter for new chocolates,
+            special offers and delicious updates.
+          </p>
+
+          <form
+            className="newsletter-form"
+            onSubmit={handleSubmit}
+          >
+            <input
+              type="email"
+              placeholder="Enter your email address"
+              value={email}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
+              aria-label="Email address"
+            />
+
+            <button type="submit">
+              Subscribe
+            </button>
+          </form>
+
+          {message && (
+            <p className="newsletter-message">
+              {message}
+            </p>
+          )}
+
+          <small>
+            We respect your privacy. No spam.
+          </small>
+        </div>
+
       </div>
     </section>
   );
