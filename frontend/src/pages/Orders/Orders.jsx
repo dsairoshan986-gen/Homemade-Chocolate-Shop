@@ -1,164 +1,84 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
 import "./Orders.css";
 
-function Orders() {
-  const navigate = useNavigate();
+const API_URL = "http://localhost:5000/api";
 
+function Orders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ============================================
+
+  // ==========================================
   // FETCH ORDERS
-  // ============================================
+  // ==========================================
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        // Get JWT token from localStorage
-        const token = localStorage.getItem("token");
-
-        // User is not logged in
-        if (!token) {
-          setError("Please login to view your orders.");
-          setLoading(false);
-          return;
-        }
-
-        // Call backend API
-        const response = await fetch(
-          "http://localhost:5000/api/orders",
-          {
-            method: "GET",
-
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const data = await response.json();
-
-        console.log("Orders API Response:", data);
-
-        // Token expired / invalid
-        if (response.status === 401) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-
-          setError(
-            data.message ||
-              "Your login session has expired. Please login again."
-          );
-
-          setLoading(false);
-          return;
-        }
-
-        // Other backend error
-        if (!response.ok) {
-          throw new Error(
-            data.message || "Failed to load orders."
-          );
-        }
-
-        // Backend returned success
-        if (data.success) {
-          setOrders(
-            Array.isArray(data.data) ? data.data : []
-          );
-        } else {
-          throw new Error(
-            data.message || "Unable to load orders."
-          );
-        }
-      } catch (err) {
-        console.error("Fetch Orders Error:", err);
-
-        setError(
-          err.message ||
-            "Something went wrong while loading your orders."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchOrders();
   }, []);
 
 
-  // ============================================
-  // FORMAT DATE
-  // ============================================
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-  const formatDate = (date) => {
-    if (!date) {
-      return "N/A";
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setError("Please login to view your orders.");
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(
+        `${API_URL}/orders`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Failed to fetch orders"
+        );
+      }
+
+      setOrders(result.data || []);
+
+    } catch (err) {
+      console.error("Fetch Orders Error:", err);
+
+      setError(
+        err.message || "Unable to load your orders."
+      );
+
+    } finally {
+      setLoading(false);
     }
-
-    const orderDate = new Date(date);
-
-    if (Number.isNaN(orderDate.getTime())) {
-      return "N/A";
-    }
-
-    return orderDate.toLocaleString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
 
-  // ============================================
-  // FORMAT PRICE
-  // ============================================
-
-  const formatPrice = (price) => {
-    const amount = Number(price);
-
-    if (Number.isNaN(amount)) {
-      return "₹0.00";
-    }
-
-    return `₹${amount.toFixed(2)}`;
-  };
-
-
-  // ============================================
-  // LOGIN BUTTON
-  // ============================================
-
-  const handleLogin = () => {
-    navigate("/login");
-  };
-
-
-  // ============================================
+  // ==========================================
   // LOADING
-  // ============================================
+  // ==========================================
 
   if (loading) {
     return (
-      <main className="orders-page">
+      <div className="orders-page">
+
         <div className="orders-container">
 
-          <div className="orders-page-header">
-            <h1>My Orders</h1>
-          </div>
-
           <div className="orders-loading">
-            <div className="orders-spinner"></div>
+            <div className="loading-spinner"></div>
 
-            <h2>Loading your orders...</h2>
+            <h2>Loading Your Orders...</h2>
 
             <p>
               Please wait while we fetch your order history.
@@ -166,27 +86,25 @@ function Orders() {
           </div>
 
         </div>
-      </main>
+
+      </div>
     );
   }
 
 
-  // ============================================
+  // ==========================================
   // ERROR
-  // ============================================
+  // ==========================================
 
   if (error) {
     return (
-      <main className="orders-page">
+      <div className="orders-page">
+
         <div className="orders-container">
 
-          <div className="orders-page-header">
-            <h1>My Orders</h1>
-          </div>
+          <div className="orders-error">
 
-          <div className="orders-error-box">
-
-            <div className="orders-error-icon">
+            <div className="error-icon">
               ⚠️
             </div>
 
@@ -194,43 +112,48 @@ function Orders() {
 
             <p>{error}</p>
 
-            {!localStorage.getItem("token") && (
-              <button
-                className="orders-login-button"
-                onClick={handleLogin}
-              >
-                Login
-              </button>
-            )}
+            <button
+              className="retry-button"
+              onClick={fetchOrders}
+            >
+              Try Again
+            </button>
 
           </div>
 
         </div>
-      </main>
+
+      </div>
     );
   }
 
 
-  // ============================================
-  // NO ORDERS
-  // ============================================
+  // ==========================================
+  // EMPTY ORDERS
+  // ==========================================
 
   if (orders.length === 0) {
     return (
-      <main className="orders-page">
+      <div className="orders-page">
+
         <div className="orders-container">
 
-          <div className="orders-page-header">
-            <h1>My Orders</h1>
+          <div className="orders-header">
 
-            <p>
-              View and manage your chocolate orders.
-            </p>
+            <div>
+              <h1>My Orders</h1>
+
+              <p>
+                View your chocolate order history.
+              </p>
+            </div>
+
           </div>
 
-          <div className="no-orders">
 
-            <div className="no-orders-icon">
+          <div className="empty-orders">
+
+            <div className="empty-icon">
               📦
             </div>
 
@@ -238,44 +161,52 @@ function Orders() {
 
             <p>
               You haven't placed any orders yet.
-              Start shopping and your orders will appear here.
             </p>
 
-            <Link
-              to="/products"
-              className="start-shopping-button"
+            <a
+              href="/products"
+              className="shop-button"
             >
-              Shop Chocolates
-            </Link>
+              Start Shopping
+            </a>
 
           </div>
 
         </div>
-      </main>
+
+      </div>
     );
   }
 
 
-  // ============================================
-  // ORDERS
-  // ============================================
+  // ==========================================
+  // ORDERS PAGE
+  // ==========================================
 
   return (
-    <main className="orders-page">
+    <div className="orders-page">
 
       <div className="orders-container">
 
-        {/* PAGE HEADER */}
 
-        <div className="orders-page-header">
+        {/* ================================= */}
+        {/* HEADER */}
+        {/* ================================= */}
+
+        <div className="orders-header">
 
           <div>
-            <h1>My Orders</h1>
+
+            <h1>
+              My Orders
+            </h1>
 
             <p>
               View your chocolate order history.
             </p>
+
           </div>
+
 
           <div className="orders-count">
             {orders.length}{" "}
@@ -287,160 +218,238 @@ function Orders() {
         </div>
 
 
+        {/* ================================= */}
         {/* ORDER LIST */}
+        {/* ================================= */}
 
         <div className="orders-list">
 
           {orders.map((order) => (
 
-            <article
+            <div
               className="order-card"
               key={order.id}
             >
 
+
+              {/* ================================= */}
               {/* ORDER HEADER */}
+              {/* ================================= */}
 
-              <div className="order-card-header">
+              <div className="order-header">
 
-                <div className="order-number-section">
+                <div className="order-number">
 
-                  <span className="order-label">
+                  <span>
                     ORDER
                   </span>
 
-                  <h2>
+                  <strong>
                     #{order.id}
-                  </h2>
+                  </strong>
 
                 </div>
 
 
-                <div className="order-header-right">
+                <div className="order-date">
 
-                  <div className="order-date">
-
-                    <span>
-                      Order Date
-                    </span>
-
-                    <strong>
-                      {formatDate(order.created_at)}
-                    </strong>
-
-                  </div>
-
-
-                  <span
-                    className={`order-status ${
-                      order.status
-                        ? order.status
-                            .toLowerCase()
-                            .replace(/\s+/g, "-")
-                        : "pending"
-                    }`}
-                  >
-                    {order.status || "Pending"}
+                  <span>
+                    Order Date
                   </span>
 
+                  <strong>
+                    {formatDate(order.created_at)}
+                  </strong>
+
+                </div>
+
+
+                <div
+                  className={`order-status ${getStatusClass(
+                    order.status
+                  )}`}
+                >
+                  {order.status || "Pending"}
                 </div>
 
               </div>
 
 
-              {/* ORDER BODY */}
+              {/* ================================= */}
+              {/* CUSTOMER DETAILS */}
+              {/* ================================= */}
 
-              <div className="order-card-body">
+              <div className="customer-details">
 
-                <div className="order-information">
+                <div className="customer-item">
 
-                  <div className="order-info-item">
+                  <span>
+                    Customer
+                  </span>
 
-                    <span className="info-label">
-                      Customer
-                    </span>
-
-                    <span className="info-value">
-                      {order.customer_name || "N/A"}
-                    </span>
-
-                  </div>
-
-
-                  <div className="order-info-item">
-
-                    <span className="info-label">
-                      Email
-                    </span>
-
-                    <span className="info-value">
-                      {order.email || "N/A"}
-                    </span>
-
-                  </div>
-
-
-                  <div className="order-info-item">
-
-                    <span className="info-label">
-                      Phone
-                    </span>
-
-                    <span className="info-value">
-                      {order.phone || "N/A"}
-                    </span>
-
-                  </div>
-
-
-                  <div className="order-info-item">
-
-                    <span className="info-label">
-                      City
-                    </span>
-
-                    <span className="info-value">
-                      {order.city || "N/A"}
-                    </span>
-
-                  </div>
+                  <strong>
+                    {order.customer_name}
+                  </strong>
 
                 </div>
 
 
-                {/* DELIVERY ADDRESS */}
+                <div className="customer-item">
 
-                <div className="delivery-section">
+                  <span>
+                    Email
+                  </span>
 
-                  <h3>
-                    📍 Delivery Address
-                  </h3>
+                  <strong>
+                    {order.email}
+                  </strong>
 
-                  <p>
-                    {order.address || "N/A"}
-                  </p>
+                </div>
 
-                  <p>
-                    {order.city || ""}
-                    {order.city && order.state
-                      ? ", "
-                      : ""}
-                    {order.state || ""}
-                  </p>
 
-                  <p>
-                    Pincode: {order.pincode || "N/A"}
-                  </p>
+                <div className="customer-item">
+
+                  <span>
+                    Phone
+                  </span>
+
+                  <strong>
+                    {order.phone}
+                  </strong>
+
+                </div>
+
+
+                <div className="customer-item">
+
+                  <span>
+                    City
+                  </span>
+
+                  <strong>
+                    {order.city}
+                  </strong>
 
                 </div>
 
               </div>
 
 
+              {/* ================================= */}
+              {/* DELIVERY ADDRESS */}
+              {/* ================================= */}
+
+              <div className="delivery-address">
+
+                <h3>
+                  📍 Delivery Address
+                </h3>
+
+                <p>
+                  {order.address}
+                </p>
+
+                <p>
+                  {order.city}, {order.state}
+                </p>
+
+                <p>
+                  Pincode: {order.pincode}
+                </p>
+
+              </div>
+
+
+              {/* ================================= */}
+              {/* ORDER ITEMS */}
+              {/* ================================= */}
+
+              <div className="order-items-section">
+
+                <h3>
+                  🍫 Items Ordered
+                </h3>
+
+
+                <div className="order-items">
+
+                  {Array.isArray(order.items) &&
+                  order.items.length > 0 ? (
+
+                    order.items.map((item) => {
+
+                      const price =
+                        Number(item.price) || 0;
+
+                      const quantity =
+                        Number(item.quantity) || 0;
+
+                      const subtotal =
+                        price * quantity;
+
+
+                      return (
+                        <div
+                          className="order-item"
+                          key={item.id}
+                        >
+
+                          <div className="item-icon">
+                            🍫
+                          </div>
+
+
+                          <div className="item-details">
+
+                            <h4>
+                              {item.product_name ||
+                                `Product #${item.product_id}`}
+                            </h4>
+
+                            <p>
+                              Quantity: {quantity}
+                            </p>
+
+                          </div>
+
+
+                          <div className="item-price">
+
+                            <span>
+                              ₹{price.toFixed(2)} × {quantity}
+                            </span>
+
+                            <strong>
+                              ₹{subtotal.toFixed(2)}
+                            </strong>
+
+                          </div>
+
+                        </div>
+                      );
+
+                    })
+
+                  ) : (
+
+                    <div className="no-items">
+                      No item details available.
+                    </div>
+
+                  )}
+
+                </div>
+
+              </div>
+
+
+              {/* ================================= */}
               {/* ORDER FOOTER */}
+              {/* ================================= */}
 
-              <div className="order-card-footer">
+              <div className="order-footer">
 
-                <div className="order-payment-info">
+                <div className="order-status-text">
 
                   <span>
                     Order Status
@@ -453,44 +462,91 @@ function Orders() {
                 </div>
 
 
-                <div className="order-total-section">
+                <div className="order-total">
 
                   <span>
                     Total Amount
                   </span>
 
                   <strong>
-                    {formatPrice(order.total_amount)}
+                    ₹
+                    {Number(
+                      order.total_amount || 0
+                    ).toFixed(2)}
                   </strong>
 
                 </div>
 
               </div>
 
-            </article>
+            </div>
 
           ))}
 
         </div>
 
-
-        {/* SHOP MORE */}
-
-        <div className="orders-shop-more">
-
-          <Link
-            to="/products"
-            className="shop-more-button"
-          >
-            ← Continue Shopping
-          </Link>
-
-        </div>
-
       </div>
 
-    </main>
+    </div>
   );
 }
+
+
+// ==========================================
+// FORMAT DATE
+// ==========================================
+
+function formatDate(date) {
+  if (!date) {
+    return "N/A";
+  }
+
+  try {
+    return new Date(date).toLocaleString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+    );
+  } catch (error) {
+    return date;
+  }
+}
+
+
+// ==========================================
+// STATUS CLASS
+// ==========================================
+
+function getStatusClass(status) {
+
+  const normalizedStatus =
+    String(status || "Pending")
+      .toLowerCase();
+
+
+  if (normalizedStatus === "completed") {
+    return "status-completed";
+  }
+
+  if (normalizedStatus === "delivered") {
+    return "status-delivered";
+  }
+
+  if (normalizedStatus === "cancelled") {
+    return "status-cancelled";
+  }
+
+  if (normalizedStatus === "processing") {
+    return "status-processing";
+  }
+
+  return "status-pending";
+}
+
 
 export default Orders;

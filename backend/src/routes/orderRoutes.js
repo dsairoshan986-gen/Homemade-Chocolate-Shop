@@ -7,10 +7,10 @@ const orderController = require("../controllers/orderController");
 const authMiddleware = require("../middleware/authMiddleware");
 
 
-// ========================================
+// ==========================================
 // CREATE ORDER
 // POST /api/orders
-// ========================================
+// ==========================================
 
 router.post(
   "/",
@@ -19,15 +19,15 @@ router.post(
 );
 
 
-// ========================================
+// ==========================================
 // GET MY ORDERS
 // GET /api/orders
-// ========================================
+// ==========================================
 
 router.get(
   "/",
   authMiddleware,
-  orderController.getMyOrders
+  orderController.getOrders
 );
 
 

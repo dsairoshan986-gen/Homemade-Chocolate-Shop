@@ -1,8 +1,9 @@
 const pool = require("../config/db");
 
-// ========================================
+
+// ==========================================
 // CREATE A NEW ORDER
-// ========================================
+// ==========================================
 
 const createOrder = async (req, res) => {
   const client = await pool.connect();
@@ -20,9 +21,10 @@ const createOrder = async (req, res) => {
       total_amount,
     } = req.body;
 
-    // ==============================
+
+    // ======================================
     // VALIDATION
-    // ==============================
+    // ======================================
 
     if (
       !customer_name ||
@@ -41,15 +43,17 @@ const createOrder = async (req, res) => {
       });
     }
 
-    // ==============================
-    // START TRANSACTION
-    // ==============================
+
+    // ======================================
+    // START DATABASE TRANSACTION
+    // ======================================
 
     await client.query("BEGIN");
 
-    // ==============================
+
+    // ======================================
     // CREATE ORDER
-    // ==============================
+    // ======================================
 
     const orderResult = await client.query(
       `
@@ -79,11 +83,13 @@ const createOrder = async (req, res) => {
       ]
     );
 
+
     const order = orderResult.rows[0];
 
-    // ==============================
+
+    // ======================================
     // ADD ORDER ITEMS
-    // ==============================
+    // ======================================
 
     for (const item of items) {
       await client.query(
@@ -106,11 +112,17 @@ const createOrder = async (req, res) => {
       );
     }
 
-    // ==============================
-    // COMMIT
-    // ==============================
+
+    // ======================================
+    // COMMIT TRANSACTION
+    // ======================================
 
     await client.query("COMMIT");
+
+
+    // ======================================
+    // RESPONSE
+    // ======================================
 
     return res.status(201).json({
       success: true,
@@ -119,6 +131,10 @@ const createOrder = async (req, res) => {
     });
 
   } catch (error) {
+
+    // ======================================
+    // ROLLBACK IF ERROR
+    // ======================================
 
     await client.query("ROLLBACK");
 
@@ -131,31 +147,91 @@ const createOrder = async (req, res) => {
     });
 
   } finally {
+
     client.release();
+
   }
 };
 
 
-// ========================================
-// GET MY ORDERS
-// ========================================
 
-const getMyOrders = async (req, res) => {
+// ==========================================
+// GET ALL ORDERS FOR LOGGED-IN USER
+// ==========================================
+
+const getOrders = async (req, res) => {
+
   try {
 
-    // JWT middleware puts decoded user information here
+    // Get email from JWT
     const userEmail = req.user.email;
 
-    // Find orders belonging to logged-in user
+
+    // ======================================
+    // FETCH ORDERS + ORDER ITEMS + PRODUCTS
+    // ======================================
+
     const result = await pool.query(
       `
-      SELECT *
-      FROM orders
-      WHERE email = $1
-      ORDER BY created_at DESC
+      SELECT
+        o.id,
+        o.customer_name,
+        o.email,
+        o.phone,
+        o.address,
+        o.city,
+        o.state,
+        o.pincode,
+        o.total_amount,
+        o.status,
+        o.created_at,
+
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', oi.id,
+              'product_id', oi.product_id,
+              'quantity', oi.quantity,
+              'price', oi.price,
+              'product_name', p.name
+            )
+            ORDER BY oi.id
+          ) FILTER (WHERE oi.id IS NOT NULL),
+          '[]'
+        ) AS items
+
+      FROM orders o
+
+      LEFT JOIN order_items oi
+        ON o.id = oi.order_id
+
+      LEFT JOIN products p
+        ON oi.product_id = p.id
+
+      WHERE o.email = $1
+
+      GROUP BY
+        o.id,
+        o.customer_name,
+        o.email,
+        o.phone,
+        o.address,
+        o.city,
+        o.state,
+        o.pincode,
+        o.total_amount,
+        o.status,
+        o.created_at
+
+      ORDER BY o.created_at DESC
       `,
       [userEmail]
     );
+
+
+    // ======================================
+    // SUCCESS RESPONSE
+    // ======================================
 
     return res.status(200).json({
       success: true,
@@ -165,7 +241,7 @@ const getMyOrders = async (req, res) => {
 
   } catch (error) {
 
-    console.error("Get My Orders Error:", error);
+    console.error("Get Orders Error:", error);
 
     return res.status(500).json({
       success: false,
@@ -177,11 +253,12 @@ const getMyOrders = async (req, res) => {
 };
 
 
-// ========================================
-// EXPORT
-// ========================================
+
+// ==========================================
+// EXPORT CONTROLLERS
+// ==========================================
 
 module.exports = {
   createOrder,
-  getMyOrders,
+  getOrders,
 };
