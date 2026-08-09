@@ -1,22 +1,32 @@
 const express = require("express");
+
 const router = express.Router();
 
 const authController = require("../controllers/authController");
-const authMiddleware = require("../middleware/authMiddleware");
 
-// Register
-router.post("/register", authController.register);
 
-// Login
-router.post("/login", authController.login);
+// =====================================================
+// REGISTER
+// =====================================================
 
-// Protected test route
-router.get("/me", authMiddleware, (req, res) => {
-  res.json({
-    success: true,
-    message: "Authentication successful",
-    user: req.user,
-  });
-});
+router.post(
+  "/register",
+  authController.register
+);
+
+
+// =====================================================
+// LOGIN
+// =====================================================
+
+router.post(
+  "/login",
+  authController.login
+);
+
+
+// =====================================================
+// EXPORT ROUTER
+// =====================================================
 
 module.exports = router;
