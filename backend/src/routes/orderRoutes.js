@@ -4,6 +4,31 @@ const router = express.Router();
 
 const orderController = require("../controllers/orderController");
 
-router.post("/", orderController.createOrder);
+const authMiddleware = require("../middleware/authMiddleware");
+
+
+// ========================================
+// CREATE ORDER
+// POST /api/orders
+// ========================================
+
+router.post(
+  "/",
+  authMiddleware,
+  orderController.createOrder
+);
+
+
+// ========================================
+// GET MY ORDERS
+// GET /api/orders
+// ========================================
+
+router.get(
+  "/",
+  authMiddleware,
+  orderController.getMyOrders
+);
+
 
 module.exports = router;

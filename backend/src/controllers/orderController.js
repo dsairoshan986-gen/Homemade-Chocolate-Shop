@@ -1,6 +1,9 @@
 const pool = require("../config/db");
 
-// Create a new order
+// ========================================
+// CREATE A NEW ORDER
+// ========================================
+
 const createOrder = async (req, res) => {
   const client = await pool.connect();
 
@@ -17,7 +20,10 @@ const createOrder = async (req, res) => {
       total_amount,
     } = req.body;
 
-    // Basic validation
+    // ==============================
+    // VALIDATION
+    // ==============================
+
     if (
       !customer_name ||
       !email ||
@@ -35,9 +41,16 @@ const createOrder = async (req, res) => {
       });
     }
 
+    // ==============================
+    // START TRANSACTION
+    // ==============================
+
     await client.query("BEGIN");
 
-    // Create order
+    // ==============================
+    // CREATE ORDER
+    // ==============================
+
     const orderResult = await client.query(
       `
       INSERT INTO orders
@@ -68,7 +81,10 @@ const createOrder = async (req, res) => {
 
     const order = orderResult.rows[0];
 
-    // Add order items
+    // ==============================
+    // ADD ORDER ITEMS
+    // ==============================
+
     for (const item of items) {
       await client.query(
         `
@@ -90,28 +106,82 @@ const createOrder = async (req, res) => {
       );
     }
 
+    // ==============================
+    // COMMIT
+    // ==============================
+
     await client.query("COMMIT");
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Order created successfully",
       data: order,
     });
+
   } catch (error) {
+
     await client.query("ROLLBACK");
 
     console.error("Create Order Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to create order",
       error: error.message,
     });
+
   } finally {
     client.release();
   }
 };
 
+
+// ========================================
+// GET MY ORDERS
+// ========================================
+
+const getMyOrders = async (req, res) => {
+  try {
+
+    // JWT middleware puts decoded user information here
+    const userEmail = req.user.email;
+
+    // Find orders belonging to logged-in user
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM orders
+      WHERE email = $1
+      ORDER BY created_at DESC
+      `,
+      [userEmail]
+    );
+
+    return res.status(200).json({
+      success: true,
+      count: result.rows.length,
+      data: result.rows,
+    });
+
+  } catch (error) {
+
+    console.error("Get My Orders Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch orders",
+      error: error.message,
+    });
+
+  }
+};
+
+
+// ========================================
+// EXPORT
+// ========================================
+
 module.exports = {
   createOrder,
+  getMyOrders,
 };

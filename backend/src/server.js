@@ -1,36 +1,37 @@
-const express = require("express");
-const cors = require("cors");
 require("dotenv").config();
 
-// Routes
+const express = require("express");
+const cors = require("cors");
+
 const authRoutes = require("./routes/authRoutes");
 const productRoutes = require("./routes/productRoutes");
+const orderRoutes = require("./routes/orderRoutes");
 
 const app = express();
+
 
 // ========================================
 // Middleware
 // ========================================
 
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    credentials: true,
-  })
-);
+app.use(cors());
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
 
 // ========================================
 // API Routes
 // ========================================
 
 app.use("/api/auth", authRoutes);
+
 app.use("/api/products", productRoutes);
 
+app.use("/api/orders", orderRoutes);
+
+
 // ========================================
-// Home / Health Check
+// Home Route
 // ========================================
 
 app.get("/", (req, res) => {
@@ -40,8 +41,9 @@ app.get("/", (req, res) => {
   });
 });
 
+
 // ========================================
-// 404 Handler
+// 404 Route
 // ========================================
 
 app.use((req, res) => {
@@ -51,32 +53,20 @@ app.use((req, res) => {
   });
 });
 
-// ========================================
-// Error Handler
-// ========================================
-
-app.use((err, req, res, next) => {
-  console.error("Server Error:", err);
-
-  res.status(500).json({
-    success: false,
-    message: "Internal server error",
-    error: err.message,
-  });
-});
 
 // ========================================
-// Start Server
+// Server
 // ========================================
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log("=================================");
+  console.log("======================================");
   console.log("🍫 Chocolate Shop Backend");
-  console.log("=================================");
+  console.log("======================================");
   console.log(`Server running on http://localhost:${PORT}`);
   console.log(`Auth API: http://localhost:${PORT}/api/auth`);
   console.log(`Products API: http://localhost:${PORT}/api/products`);
-  console.log("=================================");
+  console.log(`Orders API: http://localhost:${PORT}/api/orders`);
+  console.log("======================================");
 });
