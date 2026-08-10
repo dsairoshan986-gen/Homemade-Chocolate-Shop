@@ -1,266 +1,659 @@
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import "./AdminDashboard.css";
 
-const API_URL = "http://localhost:5000/api";
-
 function AdminDashboard() {
-  const [products, setProducts] = useState([]);
+  const navigate = useNavigate();
+
   const [orders, setOrders] = useState([]);
-  const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const token = localStorage.getItem("token");
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  // ==========================================
+  // FETCH ALL ORDERS
+  // ==========================================
+  const fetchOrders = async () => {
     try {
       setLoading(true);
+      setError("");
 
-      // Get products
-      const productsResponse = await fetch(
-        `${API_URL}/products`
-      );
+      const token = localStorage.getItem("token");
 
-      const productsResult = await productsResponse.json();
-
-      if (productsResult.success) {
-        setProducts(productsResult.data || []);
-      } else if (Array.isArray(productsResult)) {
-        setProducts(productsResult);
+      if (!token) {
+        navigate("/login");
+        return;
       }
 
-      // Get orders
-      const ordersResponse = await fetch(
-        `${API_URL}/orders`,
+      const response = await fetch(
+        `http://localhost:5000/api/admin/orders?t=${Date.now()}`,
         {
+          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
           },
+          cache: "no-store",
         }
       );
 
-      const ordersResult = await ordersResponse.json();
+      const result = await response.json();
 
-      if (ordersResult.success) {
-        setOrders(ordersResult.data || []);
+      console.log(
+        "ADMIN DASHBOARD API RESPONSE:",
+        result
+      );
+
+      // ==========================================
+      // AUTH ERROR
+      // ==========================================
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        navigate("/login");
+        return;
       }
 
-      // Customers
-      // If you don't have a customer API yet, we calculate
-      // unique customers from the orders.
-      if (ordersResult.success) {
-        const uniqueCustomers = new Set(
-          (ordersResult.data || []).map(
-            (order) => order.email
-          )
+      // ==========================================
+      // API ERROR
+      // ==========================================
+      if (!response.ok) {
+        throw new Error(
+          result.message ||
+            "Failed to fetch admin orders"
         );
-
-        setCustomers(Array.from(uniqueCustomers));
       }
-    } catch (error) {
+
+      // ==========================================
+      // GET ORDERS
+      // ==========================================
+      let ordersData = [];
+
+      if (Array.isArray(result)) {
+        ordersData = result;
+      } else if (Array.isArray(result.data)) {
+        ordersData = result.data;
+      } else if (Array.isArray(result.orders)) {
+        ordersData = result.orders;
+      }
+
+      setOrders(ordersData);
+    } catch (err) {
       console.error(
-        "Dashboard Error:",
-        error
+        "Admin Dashboard Error:",
+        err
+      );
+
+      setError(
+        err.message ||
+          "Failed to load dashboard"
       );
     } finally {
       setLoading(false);
     }
   };
 
-  const totalRevenue = orders.reduce(
-    (total, order) => {
-      return (
+  // ==========================================
+  // LOAD DASHBOARD
+  // ==========================================
+  useEffect(() => {
+    fetchOrders();
+
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 10000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
+
+  // ==========================================
+  // CALCULATE STATISTICS
+  // ==========================================
+
+  const totalOrders = orders.length;
+
+  const pendingOrders = orders.filter(
+    (order) =>
+      order.status === "Pending"
+  ).length;
+
+  const confirmedOrders = orders.filter(
+    (order) =>
+      order.status === "Confirmed"
+  ).length;
+
+  const processingOrders = orders.filter(
+    (order) =>
+      order.status === "Processing"
+  ).length;
+
+  const shippedOrders = orders.filter(
+    (order) =>
+      order.status === "Shipped"
+  ).length;
+
+  const deliveredOrders = orders.filter(
+    (order) =>
+      order.status === "Delivered"
+  ).length;
+
+  const cancelledOrders = orders.filter(
+    (order) =>
+      order.status === "Cancelled"
+  ).length;
+
+  const totalRevenue = orders
+    .filter(
+      (order) =>
+        order.status !== "Cancelled"
+    )
+    .reduce(
+      (total, order) =>
         total +
-        Number(order.total_amount || 0)
-      );
-    },
-    0
-  );
+        Number(
+          order.total_amount ||
+            order.total ||
+            0
+        ),
+      0
+    );
+
+  // ==========================================
+  // LOADING
+  // ==========================================
+
+  if (loading) {
+    return (
+      <section className="admin-dashboard-page">
+        <div className="admin-dashboard-container">
+
+          <div className="dashboard-loading">
+            <div className="dashboard-spinner"></div>
+
+            <p>
+              Loading admin dashboard...
+            </p>
+          </div>
+
+        </div>
+      </section>
+    );
+  }
+
+  // ==========================================
+  // ERROR
+  // ==========================================
+
+  if (error) {
+    return (
+      <section className="admin-dashboard-page">
+        <div className="admin-dashboard-container">
+
+          <div className="dashboard-header">
+            <div>
+              <p className="dashboard-label">
+                ADMIN PANEL
+              </p>
+
+              <h1>
+                Admin Dashboard
+              </h1>
+            </div>
+          </div>
+
+          <div className="dashboard-error">
+
+            <div className="dashboard-error-icon">
+              ⚠️
+            </div>
+
+            <h2>
+              Unable to load dashboard
+            </h2>
+
+            <p>
+              {error}
+            </p>
+
+            <button
+              type="button"
+              onClick={fetchOrders}
+              className="dashboard-retry"
+            >
+              Try Again
+            </button>
+
+          </div>
+
+        </div>
+      </section>
+    );
+  }
+
+  // ==========================================
+  // DASHBOARD
+  // ==========================================
 
   return (
-    <div className="admin-dashboard">
+    <section className="admin-dashboard-page">
+      <div className="admin-dashboard-container">
 
-      {/* Header */}
-      <section className="admin-header">
+        {/* ======================================
+            HEADER
+        ====================================== */}
 
-        <div>
-          <span className="admin-badge">
-            🍫 Administration
-          </span>
-
-          <h1>Admin Dashboard</h1>
-
-          <p>
-            Manage your chocolate shop from one place.
-          </p>
-        </div>
-
-        <Link
-          to="/"
-          className="view-store-btn"
-        >
-          View Store →
-        </Link>
-
-      </section>
-
-
-      {/* Statistics */}
-      <section className="admin-stats">
-
-        {/* Products */}
-        <div className="stat-card">
-
-          <div className="stat-icon">
-            🍫
-          </div>
+        <div className="dashboard-header">
 
           <div>
-            <span className="stat-title">
-              Total Products
-            </span>
+            <p className="dashboard-label">
+              ADMIN PANEL
+            </p>
 
-            <strong>
-              {loading ? "..." : products.length}
-            </strong>
+            <h1>
+              Admin Dashboard
+            </h1>
+
+            <p className="dashboard-subtitle">
+              Manage your homemade chocolate
+              orders and track your business.
+            </p>
           </div>
 
-        </div>
-
-
-        {/* Orders */}
-        <div className="stat-card">
-
-          <div className="stat-icon">
-            📦
-          </div>
-
-          <div>
-            <span className="stat-title">
-              Total Orders
-            </span>
-
-            <strong>
-              {loading ? "..." : orders.length}
-            </strong>
-          </div>
-
-        </div>
-
-
-        {/* Customers */}
-        <div className="stat-card">
-
-          <div className="stat-icon">
-            👥
-          </div>
-
-          <div>
-            <span className="stat-title">
-              Customers
-            </span>
-
-            <strong>
-              {loading ? "..." : customers.length}
-            </strong>
-          </div>
-
-        </div>
-
-
-        {/* Revenue */}
-        <div className="stat-card">
-
-          <div className="stat-icon">
-            💰
-          </div>
-
-          <div>
-            <span className="stat-title">
-              Revenue
-            </span>
-
-            <strong>
-              ₹{loading
-                ? "..."
-                : totalRevenue.toFixed(2)}
-            </strong>
-          </div>
-
-        </div>
-
-      </section>
-
-
-      {/* Management */}
-      <section className="management-section">
-
-        <h2>Management</h2>
-
-        <div className="management-grid">
-
-          {/* Products */}
-          <Link
-            to="/admin/products"
-            className="management-card"
+          <button
+            type="button"
+            onClick={fetchOrders}
+            className="dashboard-refresh"
           >
+            ↻ Refresh
+          </button>
 
-            <div className="management-icon">
-              🍫
+        </div>
+
+        {/* ======================================
+            REVENUE + TOTAL ORDERS
+        ====================================== */}
+
+        <div className="dashboard-main-stats">
+
+          <div className="dashboard-stat-card revenue-card">
+
+            <div className="stat-icon">
+              ₹
             </div>
 
-            <div className="management-content">
-              <h3>
-                Manage Products
-              </h3>
-
+            <div>
               <p>
-                Add, edit and remove chocolates.
+                Total Revenue
               </p>
+
+              <h2>
+                ₹{" "}
+                {totalRevenue.toLocaleString(
+                  "en-IN",
+                  {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }
+                )}
+              </h2>
             </div>
 
-            <span className="management-arrow">
-              →
-            </span>
+          </div>
 
-          </Link>
+          <div className="dashboard-stat-card orders-card">
 
-
-          {/* Orders */}
-          <Link
-            to="/admin/orders"
-            className="management-card"
-          >
-
-            <div className="management-icon">
+            <div className="stat-icon">
               📦
             </div>
 
-            <div className="management-content">
-              <h3>
-                Manage Orders
-              </h3>
-
+            <div>
               <p>
-                View and update customer orders.
+                Total Orders
               </p>
+
+              <h2>
+                {totalOrders}
+              </h2>
             </div>
 
-            <span className="management-arrow">
-              →
-            </span>
-
-          </Link>
+          </div>
 
         </div>
 
-      </section>
+        {/* ======================================
+            ORDER STATUS CARDS
+        ====================================== */}
 
-    </div>
+        <div className="dashboard-section">
+
+          <div className="dashboard-section-header">
+
+            <div>
+              <p className="section-label">
+                ORDER OVERVIEW
+              </p>
+
+              <h2>
+                Order Status
+              </h2>
+            </div>
+
+          </div>
+
+          <div className="dashboard-status-grid">
+
+            {/* Pending */}
+
+            <div className="status-card pending-card">
+
+              <div className="status-card-icon">
+                ⏳
+              </div>
+
+              <div>
+                <p>
+                  Pending
+                </p>
+
+                <strong>
+                  {pendingOrders}
+                </strong>
+              </div>
+
+            </div>
+
+            {/* Confirmed */}
+
+            <div className="status-card confirmed-card">
+
+              <div className="status-card-icon">
+                ✓
+              </div>
+
+              <div>
+                <p>
+                  Confirmed
+                </p>
+
+                <strong>
+                  {confirmedOrders}
+                </strong>
+              </div>
+
+            </div>
+
+            {/* Processing */}
+
+            <div className="status-card processing-card">
+
+              <div className="status-card-icon">
+                ⚙
+              </div>
+
+              <div>
+                <p>
+                  Processing
+                </p>
+
+                <strong>
+                  {processingOrders}
+                </strong>
+              </div>
+
+            </div>
+
+            {/* Shipped */}
+
+            <div className="status-card shipped-card">
+
+              <div className="status-card-icon">
+                🚚
+              </div>
+
+              <div>
+                <p>
+                  Shipped
+                </p>
+
+                <strong>
+                  {shippedOrders}
+                </strong>
+              </div>
+
+            </div>
+
+            {/* Delivered */}
+
+            <div className="status-card delivered-card">
+
+              <div className="status-card-icon">
+                ✓
+              </div>
+
+              <div>
+                <p>
+                  Delivered
+                </p>
+
+                <strong>
+                  {deliveredOrders}
+                </strong>
+              </div>
+
+            </div>
+
+            {/* Cancelled */}
+
+            <div className="status-card cancelled-card">
+
+              <div className="status-card-icon">
+                ✕
+              </div>
+
+              <div>
+                <p>
+                  Cancelled
+                </p>
+
+                <strong>
+                  {cancelledOrders}
+                </strong>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* ======================================
+            QUICK ACTIONS
+        ====================================== */}
+
+        <div className="dashboard-section">
+
+          <div className="dashboard-section-header">
+
+            <div>
+              <p className="section-label">
+                QUICK ACTIONS
+              </p>
+
+              <h2>
+                Manage Store
+              </h2>
+            </div>
+
+          </div>
+
+          <div className="quick-actions">
+
+            <Link
+              to="/admin/orders"
+              className="quick-action"
+            >
+              <span>
+                📦
+              </span>
+
+              <div>
+                <strong>
+                  Manage Orders
+                </strong>
+
+                <p>
+                  View and update customer
+                  orders
+                </p>
+              </div>
+
+              <b>
+                →
+              </b>
+            </Link>
+
+            <Link
+              to="/products"
+              className="quick-action"
+            >
+              <span>
+                🍫
+              </span>
+
+              <div>
+                <strong>
+                  View Products
+                </strong>
+
+                <p>
+                  View your chocolate products
+                </p>
+              </div>
+
+              <b>
+                →
+              </b>
+            </Link>
+
+          </div>
+
+        </div>
+
+        {/* ======================================
+            RECENT ORDERS
+        ====================================== */}
+
+        <div className="dashboard-section">
+
+          <div className="dashboard-section-header">
+
+            <div>
+              <p className="section-label">
+                RECENT ACTIVITY
+              </p>
+
+              <h2>
+                Recent Orders
+              </h2>
+            </div>
+
+            <Link
+              to="/admin/orders"
+              className="view-all-link"
+            >
+              View All →
+            </Link>
+
+          </div>
+
+          {orders.length === 0 ? (
+
+            <div className="no-dashboard-orders">
+              <div>
+                📦
+              </div>
+
+              <p>
+                No orders yet.
+              </p>
+            </div>
+
+          ) : (
+
+            <div className="recent-orders">
+
+              {orders
+                .slice(0, 5)
+                .map((order) => (
+
+                  <div
+                    key={
+                      order.id ||
+                      order.order_id
+                    }
+                    className="recent-order"
+                  >
+
+                    <div className="recent-order-info">
+
+                      <strong>
+                        Order #
+                        {order.id ||
+                          order.order_id}
+                      </strong>
+
+                      <span>
+                        {order.customer_name ||
+                          order.email ||
+                          "Customer"}
+                      </span>
+
+                    </div>
+
+                    <div className="recent-order-total">
+
+                      ₹{" "}
+                      {Number(
+                        order.total_amount ||
+                          order.total ||
+                          0
+                      ).toFixed(2)}
+
+                    </div>
+
+                    <div
+                      className={`recent-order-status status-${String(
+                        order.status ||
+                          "Pending"
+                      )
+                        .toLowerCase()
+                        .replace(
+                          /\s+/g,
+                          "-"
+                        )}`}
+                    >
+                      {order.status ||
+                        "Pending"}
+                    </div>
+
+                  </div>
+
+                ))}
+
+            </div>
+
+          )}
+
+        </div>
+
+      </div>
+    </section>
   );
 }
 

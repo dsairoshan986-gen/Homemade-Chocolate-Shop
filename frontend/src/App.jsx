@@ -1,4 +1,3 @@
-import React from "react";
 import { Routes, Route } from "react-router-dom";
 
 // =====================================================
@@ -9,63 +8,38 @@ import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 
 // =====================================================
-// HOME
+// CUSTOMER PAGES
 // =====================================================
 
 import Home from "./pages/Home/Home";
-
-// =====================================================
-// ABOUT
-// =====================================================
-
 import About from "./pages/About/About";
-
-// =====================================================
-// PRODUCTS
-// =====================================================
-
 import Products from "./pages/Products/Products";
 import ProductDetails from "./pages/ProductDetails/ProductDetails";
-
-// =====================================================
-// CART
-// =====================================================
-
 import Cart from "./pages/Cart/Cart";
-
-// =====================================================
-// CHECKOUT
-// =====================================================
-
 import Checkout from "./pages/Checkout/Checkout";
+import Orders from "./pages/Orders/Orders";
+import OrderSuccess from "./pages/OrderSuccess/OrderSuccess";
 
 // =====================================================
-// AUTH
+// AUTH PAGES
 // =====================================================
 
 import Login from "./pages/Login/Login";
 import Register from "./pages/Register/Register";
 
 // =====================================================
-// ORDERS
-// =====================================================
-
-import Orders from "./pages/Orders/Orders";
-import OrderSuccess from "./pages/OrderSuccess/OrderSuccess";
-
-// =====================================================
-// NOT FOUND
-// =====================================================
-
-import NotFound from "./pages/NotFound/NotFound";
-
-// =====================================================
-// ADMIN
+// ADMIN PAGES
 // =====================================================
 
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import AdminOrders from "./pages/Admin/AdminOrders";
 import AdminProducts from "./pages/Admin/AdminProducts";
+
+// =====================================================
+// 404 PAGE
+// =====================================================
+
+import NotFound from "./pages/NotFound/NotFound";
 
 // =====================================================
 // APP
@@ -74,106 +48,151 @@ import AdminProducts from "./pages/Admin/AdminProducts";
 function App() {
   return (
     <>
-      {/* Navbar */}
+      {/* =================================================
+          NAVBAR
+      ================================================= */}
+
       <Navbar />
 
-      {/* Main Content */}
-      <main>
-        <Routes>
+      {/* =================================================
+          ROUTES
+      ================================================= */}
 
-          {/* ================= PUBLIC ================= */}
+      <Routes>
 
-          <Route
-            path="/"
-            element={<Home />}
-          />
+        {/* =================================================
+            HOME
+        ================================================= */}
 
-          <Route
-            path="/about"
-            element={<About />}
-          />
+        <Route
+          path="/"
+          element={<Home />}
+        />
 
-          <Route
-            path="/products"
-            element={<Products />}
-          />
+        {/* =================================================
+            ABOUT
+        ================================================= */}
 
-          <Route
-            path="/products/:id"
-            element={<ProductDetails />}
-          />
+        <Route
+          path="/about"
+          element={<About />}
+        />
 
-          {/* ================= CART ================= */}
+        {/* =================================================
+            PRODUCTS
+        ================================================= */}
 
-          <Route
-            path="/cart"
-            element={<Cart />}
-          />
+        <Route
+          path="/products"
+          element={<Products />}
+        />
 
-          {/* ================= CHECKOUT ================= */}
+        {/* =================================================
+            PRODUCT DETAILS
+        ================================================= */}
 
-          <Route
-            path="/checkout"
-            element={<Checkout />}
-          />
+        <Route
+          path="/products/:id"
+          element={<ProductDetails />}
+        />
 
-          {/* ================= AUTH ================= */}
+        {/* =================================================
+            AUTHENTICATION
+        ================================================= */}
 
-          <Route
-            path="/login"
-            element={<Login />}
-          />
+        <Route
+          path="/login"
+          element={<Login />}
+        />
 
-          <Route
-            path="/register"
-            element={<Register />}
-          />
+        <Route
+          path="/register"
+          element={<Register />}
+        />
 
-          {/* ================= USER ORDERS ================= */}
+        {/* =================================================
+            CART
+        ================================================= */}
 
-          <Route
-            path="/orders"
-            element={<Orders />}
-          />
+        <Route
+          path="/cart"
+          element={<Cart />}
+        />
 
-          <Route
-            path="/order-success/:id"
-            element={<OrderSuccess />}
-          />
+        {/* =================================================
+            CHECKOUT
+        ================================================= */}
 
-          <Route
-            path="/order-success"
-            element={<OrderSuccess />}
-          />
+        <Route
+          path="/checkout"
+          element={<Checkout />}
+        />
 
-          {/* ================= ADMIN ================= */}
+        {/* =================================================
+            CUSTOMER ORDERS
+        ================================================= */}
 
-          <Route
-            path="/admin"
-            element={<AdminDashboard />}
-          />
+        <Route
+          path="/orders"
+          element={<Orders />}
+        />
 
-          <Route
-            path="/admin/orders"
-            element={<AdminOrders />}
-          />
+        {/* =================================================
+            ORDER SUCCESS
+        ================================================= */}
 
-          <Route
-            path="/admin/products"
-            element={<AdminProducts />}
-          />
+        <Route
+          path="/order-success"
+          element={<OrderSuccess />}
+        />
 
-          {/* ================= 404 ================= */}
+        <Route
+          path="/order-success/:id"
+          element={<OrderSuccess />}
+        />
 
-          <Route
-            path="*"
-            element={<NotFound />}
-          />
+        {/* =================================================
+            ADMIN DASHBOARD
+        ================================================= */}
 
-        </Routes>
-      </main>
+        <Route
+          path="/admin/dashboard"
+          element={<AdminDashboard />}
+        />
 
-      {/* Footer */}
+        {/* =================================================
+            ADMIN ORDERS
+        ================================================= */}
+
+        <Route
+          path="/admin/orders"
+          element={<AdminOrders />}
+        />
+
+        {/* =================================================
+            ADMIN PRODUCTS
+        ================================================= */}
+
+        <Route
+          path="/admin/products"
+          element={<AdminProducts />}
+        />
+
+        {/* =================================================
+            404
+        ================================================= */}
+
+        <Route
+          path="*"
+          element={<NotFound />}
+        />
+
+      </Routes>
+
+      {/* =================================================
+          FOOTER
+      ================================================= */}
+
       <Footer />
     </>
   );
