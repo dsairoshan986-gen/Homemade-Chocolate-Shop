@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
 
 // =====================================================
 // LAYOUT
@@ -40,6 +40,28 @@ import AdminProducts from "./pages/Admin/AdminProducts";
 // =====================================================
 
 import NotFound from "./pages/NotFound/NotFound";
+
+// =====================================================
+// PROTECTED ADMIN ROUTE
+// =====================================================
+
+function ProtectedAdminRoute({ children }) {
+  const token = localStorage.getItem("token");
+
+  // ---------------------------------------------------
+  // User is not logged in
+  // ---------------------------------------------------
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // ---------------------------------------------------
+  // User is logged in
+  // ---------------------------------------------------
+
+  return children;
+}
 
 // =====================================================
 // APP
@@ -97,13 +119,17 @@ function App() {
         />
 
         {/* =================================================
-            AUTHENTICATION
+            LOGIN
         ================================================= */}
 
         <Route
           path="/login"
           element={<Login />}
         />
+
+        {/* =================================================
+            REGISTER
+        ================================================= */}
 
         <Route
           path="/register"
@@ -153,29 +179,44 @@ function App() {
 
         {/* =================================================
             ADMIN DASHBOARD
+            PROTECTED
         ================================================= */}
 
         <Route
           path="/admin/dashboard"
-          element={<AdminDashboard />}
+          element={
+            <ProtectedAdminRoute>
+              <AdminDashboard />
+            </ProtectedAdminRoute>
+          }
         />
 
         {/* =================================================
             ADMIN ORDERS
+            PROTECTED
         ================================================= */}
 
         <Route
           path="/admin/orders"
-          element={<AdminOrders />}
+          element={
+            <ProtectedAdminRoute>
+              <AdminOrders />
+            </ProtectedAdminRoute>
+          }
         />
 
         {/* =================================================
             ADMIN PRODUCTS
+            PROTECTED
         ================================================= */}
 
         <Route
           path="/admin/products"
-          element={<AdminProducts />}
+          element={
+            <ProtectedAdminRoute>
+              <AdminProducts />
+            </ProtectedAdminRoute>
+          }
         />
 
         {/* =================================================

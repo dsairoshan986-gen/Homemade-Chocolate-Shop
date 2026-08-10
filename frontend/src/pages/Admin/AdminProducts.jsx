@@ -1,42 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./AdminProducts.css";
-
-// =====================================================
-// PRODUCT IMAGES
-// =====================================================
-
-import darkTruffle from "../../assets/images/products/dark-truffle.jpg";
-import milkChocolate from "../../assets/images/products/milk-chocolate.jpg";
-import whiteChocolate from "../../assets/images/products/white-chocolate.jpg";
-import ferrero from "../../assets/images/products/ferrero.jpg";
-
-// =====================================================
-// API
-// =====================================================
 
 const API_URL = "http://localhost:5000/api";
 
-// =====================================================
-// COMPONENT
-// =====================================================
-
 function AdminProducts() {
-  // ===================================================
-  // STATE
-  // ===================================================
+  const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
-
   const [loading, setLoading] = useState(true);
 
   const [showForm, setShowForm] = useState(false);
-
-  const [editingProduct, setEditingProduct] =
-    useState(null);
+  const [editingProduct, setEditingProduct] = useState(null);
 
   const [message, setMessage] = useState("");
-
   const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
@@ -49,75 +26,17 @@ function AdminProducts() {
     featured: false,
   });
 
-  // ===================================================
+  // =====================================================
   // GET TOKEN
-  // ===================================================
+  // =====================================================
 
   const getToken = () => {
     return localStorage.getItem("token");
   };
 
-  // ===================================================
-  // GET PRODUCT IMAGE
-  // ===================================================
-
-  const getProductImage = (imageUrl, productName) => {
-    const image = String(imageUrl || "").toLowerCase();
-
-    const name = String(productName || "").toLowerCase();
-
-    // Dark chocolate
-    if (
-      image.includes("dark-truffle") ||
-      image.includes("dark_chocolate") ||
-      image.includes("dark chocolate") ||
-      name.includes("dark chocolate")
-    ) {
-      return darkTruffle;
-    }
-
-    // Milk chocolate
-    if (
-      image.includes("milk-chocolate") ||
-      image.includes("milk_chocolate") ||
-      image.includes("milk chocolate") ||
-      name.includes("milk chocolate")
-    ) {
-      return milkChocolate;
-    }
-
-    // White chocolate
-    if (
-      image.includes("white-chocolate") ||
-      image.includes("white_chocolate") ||
-      image.includes("white chocolate") ||
-      name.includes("white chocolate")
-    ) {
-      return whiteChocolate;
-    }
-
-    // Ferrero
-    if (
-      image.includes("ferrero") ||
-      name.includes("ferrero")
-    ) {
-      return ferrero;
-    }
-
-    return null;
-  };
-
-  // ===================================================
-  // FETCH PRODUCTS ON PAGE LOAD
-  // ===================================================
-
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  // ===================================================
+  // =====================================================
   // FETCH PRODUCTS
-  // ===================================================
+  // =====================================================
 
   const fetchProducts = async () => {
     try {
@@ -125,48 +44,56 @@ function AdminProducts() {
       setError("");
 
       const response = await fetch(
-        `${API_URL}/products`
+        `${API_URL}/products?t=${Date.now()}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
+          },
+          cache: "no-store",
+        }
       );
 
       const result = await response.json();
 
-      console.log(
-        "ADMIN PRODUCTS API RESPONSE:",
-        result
-      );
+      console.log("PRODUCTS API RESPONSE:", result);
 
       if (!response.ok) {
         throw new Error(
-          result?.message ||
-            "Failed to fetch products"
+          result?.message || "Failed to fetch products"
         );
       }
 
-      if (result.success) {
-        setProducts(result.data || []);
+      if (result?.success && Array.isArray(result.data)) {
+        setProducts(result.data);
       } else if (Array.isArray(result)) {
         setProducts(result);
       } else {
         setProducts([]);
       }
     } catch (err) {
-      console.error(
-        "Fetch Products Error:",
-        err
-      );
+      console.error("Fetch Products Error:", err);
 
       setError(
-        err.message ||
-          "Failed to load products"
+        err?.message || "Failed to load products"
       );
     } finally {
       setLoading(false);
     }
   };
 
-  // ===================================================
-  // HANDLE FORM INPUT
-  // ===================================================
+  // =====================================================
+  // LOAD PRODUCTS
+  // =====================================================
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  // =====================================================
+  // HANDLE FORM CHANGE
+  // =====================================================
 
   const handleChange = (event) => {
     const {
@@ -178,7 +105,6 @@ function AdminProducts() {
 
     setFormData((previous) => ({
       ...previous,
-
       [name]:
         type === "checkbox"
           ? checked
@@ -186,9 +112,9 @@ function AdminProducts() {
     }));
   };
 
-  // ===================================================
+  // =====================================================
   // RESET FORM
-  // ===================================================
+  // =====================================================
 
   const resetForm = () => {
     setFormData({
@@ -205,9 +131,9 @@ function AdminProducts() {
     setShowForm(false);
   };
 
-  // ===================================================
+  // =====================================================
   // ADD PRODUCT
-  // ===================================================
+  // =====================================================
 
   const handleAddProduct = () => {
     setEditingProduct(null);
@@ -224,7 +150,6 @@ function AdminProducts() {
 
     setMessage("");
     setError("");
-
     setShowForm(true);
 
     window.scrollTo({
@@ -233,37 +158,25 @@ function AdminProducts() {
     });
   };
 
-  // ===================================================
+  // =====================================================
   // EDIT PRODUCT
-  // ===================================================
+  // =====================================================
 
   const handleEditProduct = (product) => {
     setEditingProduct(product);
 
     setFormData({
       name: product.name || "",
-
-      description:
-        product.description || "",
-
-      price: product.price || "",
-
-      category:
-        product.category || "",
-
-      image_url:
-        product.image_url || "",
-
-      stock:
-        product.stock ?? "",
-
-      featured:
-        Boolean(product.featured),
+      description: product.description || "",
+      price: product.price ?? "",
+      category: product.category || "",
+      image_url: product.image_url || "",
+      stock: product.stock ?? "",
+      featured: Boolean(product.featured),
     });
 
     setMessage("");
     setError("");
-
     setShowForm(true);
 
     window.scrollTo({
@@ -272,9 +185,9 @@ function AdminProducts() {
     });
   };
 
-  // ===================================================
+  // =====================================================
   // ADD / UPDATE PRODUCT
-  // ===================================================
+  // =====================================================
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -282,24 +195,20 @@ function AdminProducts() {
     setMessage("");
     setError("");
 
-    // -------------------------------------------------
+    // ---------------------------------------------------
     // VALIDATION
-    // -------------------------------------------------
+    // ---------------------------------------------------
 
     if (!formData.name.trim()) {
-      setError(
-        "Product name is required."
-      );
+      setError("Product name is required.");
       return;
     }
 
     if (
       formData.price === "" ||
-      Number(formData.price) <= 0
+      Number(formData.price) < 0
     ) {
-      setError(
-        "Product price must be greater than 0."
-      );
+      setError("Please enter a valid product price.");
       return;
     }
 
@@ -307,26 +216,21 @@ function AdminProducts() {
       formData.stock !== "" &&
       Number(formData.stock) < 0
     ) {
-      setError(
-        "Stock cannot be negative."
-      );
-      return;
-    }
-
-    // -------------------------------------------------
-    // TOKEN
-    // -------------------------------------------------
-
-    const token = getToken();
-
-    if (!token) {
-      setError(
-        "You are not logged in. Please login again."
-      );
+      setError("Stock cannot be negative.");
       return;
     }
 
     try {
+      const token = getToken();
+
+      if (!token) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        navigate("/login");
+        return;
+      }
+
       const isEditing =
         editingProduct !== null;
 
@@ -338,59 +242,62 @@ function AdminProducts() {
         ? "PUT"
         : "POST";
 
-      // -------------------------------------------------
-      // REQUEST
-      // -------------------------------------------------
+      const response = await fetch(url, {
+        method,
 
-      const response = await fetch(
-        url,
-        {
-          method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
 
-          headers: {
-            "Content-Type":
-              "application/json",
+        body: JSON.stringify({
+          name: formData.name.trim(),
 
-            Authorization:
-              `Bearer ${token}`,
-          },
+          description:
+            formData.description.trim(),
 
-          body: JSON.stringify({
-            name:
-              formData.name.trim(),
+          price: Number(formData.price),
 
-            description:
-              formData.description.trim(),
+          category:
+            formData.category.trim(),
 
-            price:
-              Number(formData.price),
+          image_url:
+            formData.image_url.trim(),
 
-            category:
-              formData.category.trim(),
+          stock: Number(
+            formData.stock || 0
+          ),
 
-            image_url:
-              formData.image_url.trim(),
+          featured:
+            Boolean(formData.featured),
+        }),
+      });
 
-            stock:
-              Number(formData.stock || 0),
-
-            featured:
-              Boolean(formData.featured),
-          }),
-        }
-      );
-
-      const result =
-        await response.json();
+      const result = await response.json();
 
       console.log(
         "SAVE PRODUCT RESPONSE:",
         result
       );
 
-      // -------------------------------------------------
-      // ERROR
-      // -------------------------------------------------
+      // ---------------------------------------------------
+      // AUTH ERROR
+      // ---------------------------------------------------
+
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        navigate("/login");
+        return;
+      }
+
+      // ---------------------------------------------------
+      // API ERROR
+      // ---------------------------------------------------
 
       if (!response.ok) {
         throw new Error(
@@ -403,9 +310,9 @@ function AdminProducts() {
         );
       }
 
-      // -------------------------------------------------
-      // SUCCESS MESSAGE
-      // -------------------------------------------------
+      // ---------------------------------------------------
+      // SUCCESS
+      // ---------------------------------------------------
 
       setMessage(
         isEditing
@@ -413,15 +320,7 @@ function AdminProducts() {
           : "Product added successfully!"
       );
 
-      // -------------------------------------------------
-      // RESET
-      // -------------------------------------------------
-
       resetForm();
-
-      // -------------------------------------------------
-      // REFRESH
-      // -------------------------------------------------
 
       await fetchProducts();
     } catch (err) {
@@ -431,61 +330,80 @@ function AdminProducts() {
       );
 
       setError(
-        err.message ||
-          "Failed to save product."
+        err?.message ||
+          "Failed to save product"
       );
     }
   };
 
-  // ===================================================
+  // =====================================================
   // DELETE PRODUCT
-  // ===================================================
+  // =====================================================
 
   const handleDeleteProduct = async (
     productId
   ) => {
-    const confirmed =
-      window.confirm(
-        "Are you sure you want to delete this product?"
-      );
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this product?"
+    );
 
     if (!confirmed) {
       return;
     }
 
-    setMessage("");
-    setError("");
-
-    const token = getToken();
-
-    if (!token) {
-      setError(
-        "You are not logged in. Please login again."
-      );
-      return;
-    }
-
     try {
-      const response =
-        await fetch(
-          `${API_URL}/products/${productId}`,
-          {
-            method: "DELETE",
+      setMessage("");
+      setError("");
 
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
-          }
-        );
+      const token = getToken();
 
-      const result =
-        await response.json();
+      if (!token) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        navigate("/login");
+        return;
+      }
+
+      const response = await fetch(
+        `${API_URL}/products/${productId}`,
+        {
+          method: "DELETE",
+
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+          },
+        }
+      );
+
+      const result = await response.json();
 
       console.log(
         "DELETE PRODUCT RESPONSE:",
         result
       );
+
+      // ---------------------------------------------------
+      // AUTH ERROR
+      // ---------------------------------------------------
+
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        navigate("/login");
+        return;
+      }
+
+      // ---------------------------------------------------
+      // API ERROR
+      // ---------------------------------------------------
 
       if (!response.ok) {
         throw new Error(
@@ -506,15 +424,15 @@ function AdminProducts() {
       );
 
       setError(
-        err.message ||
-          "Failed to delete product."
+        err?.message ||
+          "Failed to delete product"
       );
     }
   };
 
-  // ===================================================
+  // =====================================================
   // FORMAT PRICE
-  // ===================================================
+  // =====================================================
 
   const formatPrice = (price) => {
     return Number(price || 0).toLocaleString(
@@ -526,344 +444,372 @@ function AdminProducts() {
     );
   };
 
-  // ===================================================
+  // =====================================================
+  // IMAGE URL
+  // =====================================================
+
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl) {
+      return "";
+    }
+
+    // Already a complete URL
+    if (
+      imageUrl.startsWith("http://") ||
+      imageUrl.startsWith("https://")
+    ) {
+      return imageUrl;
+    }
+
+    // Local frontend image names
+    const imageName =
+      imageUrl.split("/").pop();
+
+    return `/src/assets/images/products/${imageName}`;
+  };
+
+  // =====================================================
   // LOADING
-  // ===================================================
+  // =====================================================
 
   if (loading) {
     return (
       <div className="admin-products-page">
-        <div className="admin-products-header">
-          <div>
-            <Link
-              to="/admin"
-              className="back-link"
-            >
-              ← Back to Dashboard
-            </Link>
 
-            <h1>Manage Products</h1>
+        <div className="admin-products-container">
+
+          <div className="admin-products-loading">
+            <div className="admin-products-spinner"></div>
 
             <p>
               Loading products...
             </p>
           </div>
+
         </div>
+
       </div>
     );
   }
 
-  // ===================================================
-  // RENDER
-  // ===================================================
+  // =====================================================
+  // PAGE
+  // =====================================================
 
   return (
     <div className="admin-products-page">
 
-      {/* =================================================
-          HEADER
-      ================================================= */}
+      <div className="admin-products-container">
 
-      <div className="admin-products-header">
+        {/* =================================================
+            HEADER
+        ================================================= */}
 
-        <div>
+        <div className="admin-products-header">
 
-          <Link
-            to="/admin"
-            className="back-link"
-          >
-            ← Back to Dashboard
-          </Link>
+          <div>
 
-          <h1>
-            Manage Products
-          </h1>
-
-          <p>
-            Add, edit and remove chocolates
-            from your store.
-          </p>
-
-        </div>
-
-        <button
-          type="button"
-          onClick={handleAddProduct}
-          className="add-product-btn"
-        >
-          + Add Product
-        </button>
-
-      </div>
-
-      {/* =================================================
-          SUCCESS MESSAGE
-      ================================================= */}
-
-      {message && (
-        <div className="success-message">
-          {message}
-        </div>
-      )}
-
-      {/* =================================================
-          ERROR MESSAGE
-      ================================================= */}
-
-      {error && (
-        <div className="error-message">
-          {error}
-        </div>
-      )}
-
-      {/* =================================================
-          ADD / EDIT FORM
-      ================================================= */}
-
-      {showForm && (
-        <div className="product-form-card">
-
-          <div className="form-header">
-
-            <h2>
-              {editingProduct
-                ? "Edit Product"
-                : "Add New Product"}
-            </h2>
+            {/* IMPORTANT:
+                Use navigate() instead of Link
+                for the dashboard button.
+            */}
 
             <button
               type="button"
-              onClick={resetForm}
-              className="close-form-btn"
+              onClick={() =>
+                navigate("/admin/dashboard")
+              }
+              className="back-link"
             >
-              ×
+              ← Back to Dashboard
             </button>
 
-          </div>
-
-          <form
-            onSubmit={handleSubmit}
-            className="product-form"
-          >
-
-            {/* NAME */}
-
-            <div className="form-group">
-
-              <label>
-                Product Name *
-              </label>
-
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="Enter product name"
-                required
-              />
-
-            </div>
-
-            {/* DESCRIPTION */}
-
-            <div className="form-group">
-
-              <label>
-                Description
-              </label>
-
-              <textarea
-                name="description"
-                value={
-                  formData.description
-                }
-                onChange={handleChange}
-                placeholder="Enter product description"
-                rows="4"
-              />
-
-            </div>
-
-            {/* PRICE */}
-
-            <div className="form-group">
-
-              <label>
-                Price *
-              </label>
-
-              <input
-                type="number"
-                name="price"
-                value={formData.price}
-                onChange={handleChange}
-                placeholder="Enter price"
-                min="0"
-                step="0.01"
-                required
-              />
-
-            </div>
-
-            {/* CATEGORY */}
-
-            <div className="form-group">
-
-              <label>
-                Category
-              </label>
-
-              <input
-                type="text"
-                name="category"
-                value={
-                  formData.category
-                }
-                onChange={handleChange}
-                placeholder="Example: Chocolate, Truffles, Gift"
-              />
-
-            </div>
-
-            {/* IMAGE URL */}
-
-            <div className="form-group">
-
-              <label>
-                Image Filename / URL
-              </label>
-
-              <input
-                type="text"
-                name="image_url"
-                value={
-                  formData.image_url
-                }
-                onChange={handleChange}
-                placeholder="Example: dark-truffle.jpg"
-              />
-
-              <small>
-                For existing products use:
-                dark-truffle.jpg,
-                milk-chocolate.jpg,
-                white-chocolate.jpg
-                or ferrero.jpg
-              </small>
-
-            </div>
-
-            {/* STOCK */}
-
-            <div className="form-group">
-
-              <label>
-                Stock *
-              </label>
-
-              <input
-                type="number"
-                name="stock"
-                value={formData.stock}
-                onChange={handleChange}
-                placeholder="Enter stock quantity"
-                min="0"
-                step="1"
-                required
-              />
-
-            </div>
-
-            {/* FEATURED */}
-
-            <div className="form-group checkbox-group">
-
-              <label>
-
-                <input
-                  type="checkbox"
-                  name="featured"
-                  checked={
-                    formData.featured
-                  }
-                  onChange={handleChange}
-                />
-
-                <span>
-                  Featured Product
-                </span>
-
-              </label>
-
-            </div>
-
-            {/* BUTTONS */}
-
-            <div className="form-actions">
-
-              <button
-                type="submit"
-                className="save-product-btn"
-              >
-                {editingProduct
-                  ? "Update Product"
-                  : "Add Product"}
-              </button>
-
-              <button
-                type="button"
-                onClick={resetForm}
-                className="cancel-product-btn"
-              >
-                Cancel
-              </button>
-
-            </div>
-
-          </form>
-
-        </div>
-      )}
-
-      {/* =================================================
-          PRODUCT LIST
-      ================================================= */}
-
-      <div className="products-section">
-
-        <div className="products-section-header">
-
-          <div>
-            <h2>
-              All Products
-            </h2>
-
-            <p>
-              {products.length} Products
+            <p className="admin-products-label">
+              🍫 ADMINISTRATION
             </p>
+
+            <h1>
+              Manage Products
+            </h1>
+
+            <p className="admin-products-subtitle">
+              Add, edit and remove chocolates
+              from your store.
+            </p>
+
           </div>
+
+          <button
+            type="button"
+            onClick={handleAddProduct}
+            className="add-product-btn"
+          >
+            + Add Product
+          </button>
 
         </div>
 
         {/* =================================================
-            NO PRODUCTS
+            SUCCESS MESSAGE
+        ================================================= */}
+
+        {message && (
+          <div className="admin-products-success">
+            {message}
+          </div>
+        )}
+
+        {/* =================================================
+            ERROR MESSAGE
+        ================================================= */}
+
+        {error && (
+          <div className="admin-products-error">
+
+            <p>
+              {error}
+            </p>
+
+          </div>
+        )}
+
+        {/* =================================================
+            ADD / EDIT FORM
+        ================================================= */}
+
+        {showForm && (
+          <div className="product-form-card">
+
+            <div className="product-form-header">
+
+              <div>
+                <h2>
+                  {editingProduct
+                    ? "Edit Product"
+                    : "Add Product"}
+                </h2>
+
+                <p>
+                  Enter the chocolate product
+                  information below.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={resetForm}
+                className="close-form-btn"
+              >
+                ×
+              </button>
+
+            </div>
+
+            <form
+              onSubmit={handleSubmit}
+              className="product-form"
+            >
+
+              {/* NAME */}
+
+              <div className="form-group">
+
+                <label>
+                  Product Name
+                </label>
+
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Enter product name"
+                  required
+                />
+
+              </div>
+
+              {/* DESCRIPTION */}
+
+              <div className="form-group">
+
+                <label>
+                  Description
+                </label>
+
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  placeholder="Enter product description"
+                  rows="4"
+                />
+
+              </div>
+
+              {/* PRICE + CATEGORY */}
+
+              <div className="form-grid">
+
+                <div className="form-group">
+
+                  <label>
+                    Price
+                  </label>
+
+                  <input
+                    type="number"
+                    name="price"
+                    value={formData.price}
+                    onChange={handleChange}
+                    placeholder="299"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+
+                </div>
+
+                <div className="form-group">
+
+                  <label>
+                    Category
+                  </label>
+
+                  <input
+                    type="text"
+                    name="category"
+                    value={formData.category}
+                    onChange={handleChange}
+                    placeholder="Chocolate"
+                  />
+
+                </div>
+
+              </div>
+
+              {/* IMAGE URL + STOCK */}
+
+              <div className="form-grid">
+
+                <div className="form-group">
+
+                  <label>
+                    Image URL
+                  </label>
+
+                  <input
+                    type="text"
+                    name="image_url"
+                    value={formData.image_url}
+                    onChange={handleChange}
+                    placeholder="dark-truffle.jpg"
+                  />
+
+                </div>
+
+                <div className="form-group">
+
+                  <label>
+                    Stock
+                  </label>
+
+                  <input
+                    type="number"
+                    name="stock"
+                    value={formData.stock}
+                    onChange={handleChange}
+                    placeholder="50"
+                    min="0"
+                  />
+
+                </div>
+
+              </div>
+
+              {/* FEATURED */}
+
+              <div className="form-checkbox">
+
+                <label>
+
+                  <input
+                    type="checkbox"
+                    name="featured"
+                    checked={formData.featured}
+                    onChange={handleChange}
+                  />
+
+                  <span>
+                    Featured Product
+                  </span>
+
+                </label>
+
+              </div>
+
+              {/* BUTTONS */}
+
+              <div className="form-actions">
+
+                <button
+                  type="submit"
+                  className="save-product-btn"
+                >
+                  {editingProduct
+                    ? "Update Product"
+                    : "Add Product"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="cancel-product-btn"
+                >
+                  Cancel
+                </button>
+
+              </div>
+
+            </form>
+
+          </div>
+        )}
+
+        {/* =================================================
+            PRODUCTS COUNT
+        ================================================= */}
+
+        <div className="products-summary">
+
+          <div>
+            All Products
+          </div>
+
+          <strong>
+            {products.length} Products
+          </strong>
+
+        </div>
+
+        {/* =================================================
+            EMPTY PRODUCTS
         ================================================= */}
 
         {products.length === 0 ? (
+
           <div className="no-products">
 
             <div className="no-products-icon">
               🍫
             </div>
 
-            <h3>
+            <h2>
               No products found
-            </h3>
+            </h2>
 
             <p>
-              Add your first chocolate
-              product.
+              Add your first chocolate product.
             </p>
 
             <button
@@ -875,10 +821,11 @@ function AdminProducts() {
             </button>
 
           </div>
+
         ) : (
 
           /* =================================================
-             PRODUCTS TABLE
+              PRODUCTS TABLE
           ================================================= */
 
           <div className="products-table-wrapper">
@@ -920,165 +867,157 @@ function AdminProducts() {
               <tbody>
 
                 {products.map(
-                  (product) => {
+                  (product) => (
 
-                    const productImage =
-                      getProductImage(
-                        product.image_url,
-                        product.name
-                      );
+                    <tr
+                      key={product.id}
+                    >
 
-                    return (
-                      <tr
-                        key={
-                          product.id
-                        }
-                      >
+                      {/* PRODUCT */}
 
-                        {/* PRODUCT */}
+                      <td>
 
-                        <td>
+                        <div className="product-info">
 
-                          <div className="product-info">
+                          {product.image_url ? (
 
-                            {productImage ? (
-
-                              <img
-                                src={
-                                  productImage
-                                }
-                                alt={
-                                  product.name
-                                }
-                                className="product-image"
-                              />
-
-                            ) : (
-
-                              <div className="product-placeholder">
-                                🍫
-                              </div>
-
-                            )}
-
-                            <div>
-
-                              <strong>
-                                {
-                                  product.name
-                                }
-                              </strong>
-
-                              <p>
-                                {
-                                  product.description
-                                    ? product.description.substring(
-                                        0,
-                                        80
-                                      )
-                                    : "No description"
-                                }
-                              </p>
-
-                            </div>
-
-                          </div>
-
-                        </td>
-
-                        {/* CATEGORY */}
-
-                        <td>
-                          {product.category ||
-                            "—"}
-                        </td>
-
-                        {/* PRICE */}
-
-                        <td>
-                          <strong>
-                            {formatPrice(
-                              product.price
-                            )}
-                          </strong>
-                        </td>
-
-                        {/* STOCK */}
-
-                        <td>
-
-                          <span
-                            className={
-                              Number(
-                                product.stock
-                              ) <= 5
-                                ? "low-stock"
-                                : "stock"
-                            }
-                          >
-                            {product.stock ??
-                              0}
-                          </span>
-
-                        </td>
-
-                        {/* FEATURED */}
-
-                        <td>
-
-                          {product.featured ? (
-
-                            <span className="featured-badge">
-                              Featured
-                            </span>
+                            <img
+                              src={getImageUrl(
+                                product.image_url
+                              )}
+                              alt={
+                                product.name
+                              }
+                              className="product-image"
+                              onError={(event) => {
+                                event.currentTarget.style.display =
+                                  "none";
+                              }}
+                            />
 
                           ) : (
 
-                            <span className="not-featured">
-                              —
-                            </span>
+                            <div className="product-placeholder">
+                              🍫
+                            </div>
 
                           )}
 
-                        </td>
+                          <div>
 
-                        {/* ACTIONS */}
+                            <strong>
+                              {product.name}
+                            </strong>
 
-                        <td>
-
-                          <div className="product-actions">
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleEditProduct(
-                                  product
-                                )
-                              }
-                              className="edit-btn"
-                            >
-                              Edit
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleDeleteProduct(
-                                  product.id
-                                )
-                              }
-                              className="delete-btn"
-                            >
-                              Delete
-                            </button>
+                            <p>
+                              {product.description
+                                ? product.description.substring(
+                                    0,
+                                    80
+                                  )
+                                : "No description"}
+                            </p>
 
                           </div>
 
-                        </td>
+                        </div>
 
-                      </tr>
-                    );
-                  }
+                      </td>
+
+                      {/* CATEGORY */}
+
+                      <td>
+                        {product.category ||
+                          "—"}
+                      </td>
+
+                      {/* PRICE */}
+
+                      <td>
+
+                        <strong>
+                          {formatPrice(
+                            product.price
+                          )}
+                        </strong>
+
+                      </td>
+
+                      {/* STOCK */}
+
+                      <td>
+
+                        <span
+                          className={
+                            Number(
+                              product.stock
+                            ) <= 5
+                              ? "low-stock"
+                              : "stock"
+                          }
+                        >
+                          {product.stock ?? 0}
+                        </span>
+
+                      </td>
+
+                      {/* FEATURED */}
+
+                      <td>
+
+                        {product.featured ? (
+
+                          <span className="featured-badge">
+                            Featured
+                          </span>
+
+                        ) : (
+
+                          <span className="not-featured">
+                            —
+                          </span>
+
+                        )}
+
+                      </td>
+
+                      {/* ACTIONS */}
+
+                      <td>
+
+                        <div className="product-actions">
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleEditProduct(
+                                product
+                              )
+                            }
+                            className="edit-btn"
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleDeleteProduct(
+                                product.id
+                              )
+                            }
+                            className="delete-btn"
+                          >
+                            Delete
+                          </button>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+
+                  )
                 )}
 
               </tbody>

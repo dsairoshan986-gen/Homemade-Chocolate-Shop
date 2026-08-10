@@ -1,22 +1,25 @@
 import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import "./AdminOrders.css";
 
-const API_URL = "http://localhost:5000";
-
-const ORDER_STATUSES = [
-  "Pending",
-  "Confirmed",
-  "Processing",
-  "Shipped",
-  "Delivered",
-  "Cancelled",
-];
+const API_URL = "http://localhost:5000/api";
 
 function AdminOrders() {
+  const navigate = useNavigate();
+
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
+  const [message, setMessage] = useState("");
+
+  // =====================================================
+  // GET TOKEN
+  // =====================================================
+
+  const getToken = () => {
+    return localStorage.getItem("token");
+  };
 
   // =====================================================
   // FETCH ALL ORDERS
@@ -26,73 +29,115 @@ function AdminOrders() {
     try {
       setLoading(true);
       setError("");
+      setMessage("");
 
-      const token = localStorage.getItem("token");
+      const token = getToken();
+
+      // -------------------------------------------------
+      // TOKEN CHECK
+      // -------------------------------------------------
 
       if (!token) {
-        setError("Authentication token not found. Please login again.");
+        setError(
+          "Authentication token not found. Please login again."
+        );
+
+        navigate("/login");
+
         return;
       }
 
       console.log("Fetching admin orders...");
 
+      // -------------------------------------------------
+      // API REQUEST
+      // -------------------------------------------------
+
       const response = await fetch(
-        `${API_URL}/api/admin/orders`,
+        `${API_URL}/admin/orders?t=${Date.now()}`,
         {
           method: "GET",
+
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
           },
+
+          cache: "no-store",
         }
       );
 
+      // -------------------------------------------------
+      // READ RESPONSE
+      // -------------------------------------------------
+
       const result = await response.json();
 
-      console.log("ADMIN ORDERS RESPONSE:", result);
+      console.log(
+        "ADMIN ORDERS RESPONSE:",
+        result
+      );
 
-      // ===================================================
-      // AUTHORIZATION ERROR
-      // ===================================================
+      // -------------------------------------------------
+      // AUTH ERROR
+      // -------------------------------------------------
 
-      if (response.status === 401 || response.status === 403) {
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
 
-        setError("Your session has expired. Please login again.");
+        navigate("/login");
+
         return;
       }
 
-      // ===================================================
-      // OTHER API ERROR
-      // ===================================================
+      // -------------------------------------------------
+      // API ERROR
+      // -------------------------------------------------
 
       if (!response.ok) {
         throw new Error(
-          result.message || "Failed to fetch orders"
+          result?.message ||
+            "Failed to fetch orders"
         );
       }
 
-      // ===================================================
-      // HANDLE RESPONSE
-      // ===================================================
+      // -------------------------------------------------
+      // EXTRACT ORDERS
+      // -------------------------------------------------
 
       let ordersData = [];
 
       if (Array.isArray(result)) {
         ordersData = result;
-      } else if (Array.isArray(result.data)) {
+      } else if (
+        Array.isArray(result?.data)
+      ) {
         ordersData = result.data;
-      } else if (Array.isArray(result.orders)) {
+      } else if (
+        Array.isArray(result?.orders)
+      ) {
         ordersData = result.orders;
       }
 
       setOrders(ordersData);
+
+      console.log(
+        `ADMIN ORDERS: ${ordersData.length} orders loaded`
+      );
     } catch (err) {
-      console.error("Admin Orders Error:", err);
+      console.error(
+        "Admin Orders Error:",
+        err
+      );
 
       setError(
-        err.message || "Failed to load admin orders."
+        err?.message ||
+          "Failed to load orders"
       );
     } finally {
       setLoading(false);
@@ -100,78 +145,126 @@ function AdminOrders() {
   };
 
   // =====================================================
+  // LOAD ORDERS
+  // =====================================================
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  // =====================================================
   // UPDATE ORDER STATUS
   // =====================================================
 
-  const updateOrderStatus = async (orderId, newStatus) => {
+  const handleStatusChange = async (
+    orderId,
+    newStatus
+  ) => {
     try {
-      const token = localStorage.getItem("token");
+      setUpdatingOrderId(orderId);
+      setError("");
+      setMessage("");
+
+      const token = getToken();
+
+      // -------------------------------------------------
+      // TOKEN CHECK
+      // -------------------------------------------------
 
       if (!token) {
-        setError("Authentication token not found.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        navigate("/login");
+
         return;
       }
 
-      setUpdatingOrderId(orderId);
-
       console.log(
-        `Updating order ${orderId} to ${newStatus}`
+        "Updating order:",
+        orderId,
+        "to:",
+        newStatus
       );
 
+      // -------------------------------------------------
+      // API REQUEST
+      // -------------------------------------------------
+
       const response = await fetch(
-        `${API_URL}/api/admin/orders/${orderId}/status`,
+        `${API_URL}/admin/orders/${orderId}/status`,
         {
           method: "PUT",
+
           headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `Bearer ${token}`,
           },
+
           body: JSON.stringify({
             status: newStatus,
           }),
         }
       );
 
-      const result = await response.json();
+      // -------------------------------------------------
+      // READ RESPONSE
+      // -------------------------------------------------
+
+      const result =
+        await response.json();
 
       console.log(
-        "UPDATE ORDER STATUS RESPONSE:",
+        "UPDATE ORDER RESPONSE:",
         result
       );
 
-      // ===================================================
-      // AUTHORIZATION ERROR
-      // ===================================================
+      // -------------------------------------------------
+      // AUTH ERROR
+      // -------------------------------------------------
 
-      if (response.status === 401 || response.status === 403) {
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
 
-        setError(
-          "Your session has expired. Please login again."
-        );
+        navigate("/login");
 
         return;
       }
 
-      // ===================================================
+      // -------------------------------------------------
       // API ERROR
-      // ===================================================
+      // -------------------------------------------------
 
       if (!response.ok) {
         throw new Error(
-          result.message ||
+          result?.message ||
             "Failed to update order status"
         );
       }
 
-      // ===================================================
-      // UPDATE LOCAL STATE IMMEDIATELY
-      // ===================================================
+      // -------------------------------------------------
+      // SUCCESS
+      // -------------------------------------------------
+
+      setMessage(
+        `Order #${orderId} status updated successfully.`
+      );
+
+      // -------------------------------------------------
+      // UPDATE LOCAL STATE
+      // -------------------------------------------------
 
       setOrders((currentOrders) =>
         currentOrders.map((order) =>
-          Number(order.id) === Number(orderId)
+          Number(order.id) ===
+          Number(orderId)
             ? {
                 ...order,
                 status: newStatus,
@@ -179,16 +272,6 @@ function AdminOrders() {
             : order
         )
       );
-
-      console.log(
-        `Order #${orderId} updated to ${newStatus}`
-      );
-
-      // ===================================================
-      // FETCH AGAIN TO CONFIRM DATABASE VALUE
-      // ===================================================
-
-      await fetchOrders();
     } catch (err) {
       console.error(
         "Update Order Status Error:",
@@ -196,8 +279,8 @@ function AdminOrders() {
       );
 
       setError(
-        err.message ||
-          "Failed to update order status."
+        err?.message ||
+          "Failed to update order status"
       );
     } finally {
       setUpdatingOrderId(null);
@@ -205,12 +288,58 @@ function AdminOrders() {
   };
 
   // =====================================================
-  // LOAD ORDERS WHEN PAGE OPENS
+  // FORMAT PRICE
   // =====================================================
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  const formatPrice = (price) => {
+    return Number(price || 0).toLocaleString(
+      "en-IN",
+      {
+        style: "currency",
+        currency: "INR",
+      }
+    );
+  };
+
+  // =====================================================
+  // FORMAT DATE
+  // =====================================================
+
+  const formatDate = (date) => {
+    if (!date) {
+      return "N/A";
+    }
+
+    try {
+      return new Date(date).toLocaleString(
+        "en-IN",
+        {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }
+      );
+    } catch {
+      return date;
+    }
+  };
+
+  // =====================================================
+  // GET STATUS CLASS
+  // =====================================================
+
+  const getStatusClass = (status) => {
+    const normalizedStatus = String(
+      status || "Pending"
+    )
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+
+    return `order-status status-${normalizedStatus}`;
+  };
 
   // =====================================================
   // LOADING
@@ -221,22 +350,12 @@ function AdminOrders() {
       <section className="admin-orders-page">
         <div className="admin-orders-container">
 
-          <div className="admin-orders-header">
-            <div>
-              <p className="admin-label">
-                📦 ADMINISTRATION
-              </p>
-
-              <h1>Manage Orders</h1>
-
-              <p>
-                View customer orders and update their status.
-              </p>
-            </div>
-          </div>
-
           <div className="admin-orders-loading">
-            Loading orders...
+            <div className="admin-orders-spinner"></div>
+
+            <p>
+              Loading orders...
+            </p>
           </div>
 
         </div>
@@ -250,6 +369,7 @@ function AdminOrders() {
 
   return (
     <section className="admin-orders-page">
+
       <div className="admin-orders-container">
 
         {/* =================================================
@@ -259,22 +379,33 @@ function AdminOrders() {
         <div className="admin-orders-header">
 
           <div>
-            <p className="admin-label">
+
+            <Link
+              to="/admin/dashboard"
+              className="back-link"
+            >
+              ← Back to Dashboard
+            </Link>
+
+            <p className="admin-orders-label">
               📦 ADMINISTRATION
             </p>
 
-            <h1>Manage Orders</h1>
+            <h1>
+              Manage Orders
+            </h1>
 
-            <p>
-              View customer orders and update their status.
+            <p className="admin-orders-subtitle">
+              View customer orders and update
+              their status.
             </p>
+
           </div>
 
           <button
             type="button"
-            className="admin-refresh-button"
             onClick={fetchOrders}
-            disabled={loading}
+            className="refresh-orders-btn"
           >
             ↻ Refresh
           </button>
@@ -282,22 +413,37 @@ function AdminOrders() {
         </div>
 
         {/* =================================================
-            ERROR
+            SUCCESS MESSAGE
+        ================================================= */}
+
+        {message && (
+          <div className="admin-orders-success">
+            {message}
+          </div>
+        )}
+
+        {/* =================================================
+            ERROR MESSAGE
         ================================================= */}
 
         {error && (
           <div className="admin-orders-error">
 
-            <h3>
-              Unable to load orders
-            </h3>
+            <div>
 
-            <p>{error}</p>
+              <h3>
+                Unable to load orders
+              </h3>
+
+              <p>
+                {error}
+              </p>
+
+            </div>
 
             <button
               type="button"
               onClick={fetchOrders}
-              className="admin-retry-button"
             >
               Try Again
             </button>
@@ -306,214 +452,230 @@ function AdminOrders() {
         )}
 
         {/* =================================================
-            ORDER COUNT
+            TOTAL ORDERS
         ================================================= */}
 
         {!error && (
-          <div className="admin-order-count">
-            <span>Total Orders:</span>
+          <div className="admin-orders-count">
+
+            <span>
+              Total Orders:
+            </span>
 
             <strong>
               {orders.length}
             </strong>
+
           </div>
         )}
 
         {/* =================================================
-            NO ORDERS
+            EMPTY ORDERS
         ================================================= */}
 
-        {!error && orders.length === 0 && (
-          <div className="admin-empty-orders">
+        {!error &&
+          orders.length === 0 && (
+            <div className="no-orders">
 
-            <div className="admin-empty-icon">
-              📦
+              <div className="no-orders-icon">
+                📦
+              </div>
+
+              <h2>
+                No Orders Found
+              </h2>
+
+              <p>
+                There are currently no customer
+                orders.
+              </p>
+
             </div>
-
-            <h2>
-              No Orders Found
-            </h2>
-
-            <p>
-              There are currently no customer orders.
-            </p>
-
-          </div>
-        )}
+          )}
 
         {/* =================================================
-            ORDERS LIST
+            ORDERS
         ================================================= */}
 
-        {!error && orders.length > 0 && (
-          <div className="admin-orders-list">
+        {!error &&
+          orders.length > 0 && (
+            <div className="admin-orders-list">
 
-            {orders.map((order) => {
+              {orders.map((order) => (
 
-              const orderId =
-                order.id ||
-                order.order_id;
-
-              const orderItems =
-                Array.isArray(order.items)
-                  ? order.items
-                  : [];
-
-              const totalAmount = Number(
-                order.total_amount ||
-                order.total ||
-                0
-              );
-
-              const currentStatus =
-                order.status || "Pending";
-
-              return (
                 <div
+                  key={
+                    order.id ||
+                    order.order_id
+                  }
                   className="admin-order-card"
-                  key={orderId}
                 >
 
-                  {/* =================================================
+                  {/* =======================================
                       ORDER HEADER
-                  ================================================= */}
+                  ======================================= */}
 
                   <div className="admin-order-header">
 
                     <div>
-                      <span className="admin-order-label">
+
+                      <p className="order-number-label">
                         Order Number
-                      </span>
+                      </p>
 
                       <h2>
-                        Order #{orderId}
+                        Order #
+                        {order.id ||
+                          order.order_id}
                       </h2>
 
-                      <p className="admin-order-date">
-                        {order.created_at
-                          ? new Date(
-                              order.created_at
-                            ).toLocaleString()
-                          : "Date unavailable"}
+                      <p className="order-date">
+                        {formatDate(
+                          order.created_at
+                        )}
                       </p>
+
                     </div>
 
-                    {/* =================================================
-                        STATUS DROPDOWN
-                    ================================================= */}
+                    {/* STATUS */}
 
-                    <div className="admin-status-container">
+                    <div className="order-status-section">
 
-                      <label
-                        htmlFor={`status-${orderId}`}
-                      >
+                      <label>
                         Order Status
                       </label>
 
                       <select
-                        id={`status-${orderId}`}
-                        value={currentStatus}
-                        disabled={
-                          updatingOrderId === orderId
+                        value={
+                          order.status ||
+                          "Pending"
                         }
                         onChange={(event) =>
-                          updateOrderStatus(
-                            orderId,
+                          handleStatusChange(
+                            order.id ||
+                              order.order_id,
                             event.target.value
                           )
                         }
-                        className={`admin-status-select status-${currentStatus
-                          .toLowerCase()
-                          .replace(/\s+/g, "-")}`}
+                        disabled={
+                          updatingOrderId ===
+                          (order.id ||
+                            order.order_id)
+                        }
+                        className={getStatusClass(
+                          order.status
+                        )}
                       >
 
-                        {ORDER_STATUSES.map(
-                          (status) => (
-                            <option
-                              key={status}
-                              value={status}
-                            >
-                              {status}
-                            </option>
-                          )
-                        )}
+                        <option value="Pending">
+                          Pending
+                        </option>
+
+                        <option value="Confirmed">
+                          Confirmed
+                        </option>
+
+                        <option value="Processing">
+                          Processing
+                        </option>
+
+                        <option value="Shipped">
+                          Shipped
+                        </option>
+
+                        <option value="Delivered">
+                          Delivered
+                        </option>
+
+                        <option value="Cancelled">
+                          Cancelled
+                        </option>
 
                       </select>
 
                       {updatingOrderId ===
-                        orderId && (
-                        <span className="status-updating">
+                        (order.id ||
+                          order.order_id) && (
+                        <small>
                           Updating...
-                        </span>
+                        </small>
                       )}
 
                     </div>
 
                   </div>
 
-                  {/* =================================================
+                  {/* =======================================
                       CUSTOMER DETAILS
-                  ================================================= */}
+                  ======================================= */}
 
-                  <div className="admin-customer-section">
+                  <div className="customer-details">
 
                     <h3>
                       Customer Details
                     </h3>
 
-                    <div className="admin-customer-grid">
+                    <div className="customer-grid">
 
-                      <p>
-                        <strong>
-                          Customer:
-                        </strong>{" "}
-                        {order.customer_name ||
-                          "N/A"}
-                      </p>
+                      <div>
 
-                      <p>
-                        <strong>
-                          Email:
-                        </strong>{" "}
-                        {order.email ||
-                          "N/A"}
-                      </p>
+                        <p>
+                          <strong>
+                            Customer:
+                          </strong>{" "}
+                          {order.customer_name ||
+                            "N/A"}
+                        </p>
 
-                      <p>
-                        <strong>
-                          Phone:
-                        </strong>{" "}
-                        {order.phone ||
-                          "N/A"}
-                      </p>
+                        <p>
+                          <strong>
+                            Phone:
+                          </strong>{" "}
+                          {order.phone ||
+                            "N/A"}
+                        </p>
 
-                      <p>
-                        <strong>
-                          City:
-                        </strong>{" "}
-                        {order.city ||
-                          "N/A"}
-                      </p>
+                        <p>
+                          <strong>
+                            State:
+                          </strong>{" "}
+                          {order.state ||
+                            "N/A"}
+                        </p>
 
-                      <p>
-                        <strong>
-                          State:
-                        </strong>{" "}
-                        {order.state ||
-                          "N/A"}
-                      </p>
+                      </div>
 
-                      <p>
-                        <strong>
-                          Pincode:
-                        </strong>{" "}
-                        {order.pincode ||
-                          "N/A"}
-                      </p>
+                      <div>
+
+                        <p>
+                          <strong>
+                            Email:
+                          </strong>{" "}
+                          {order.email ||
+                            "N/A"}
+                        </p>
+
+                        <p>
+                          <strong>
+                            City:
+                          </strong>{" "}
+                          {order.city ||
+                            "N/A"}
+                        </p>
+
+                        <p>
+                          <strong>
+                            Pincode:
+                          </strong>{" "}
+                          {order.pincode ||
+                            "N/A"}
+                        </p>
+
+                      </div>
 
                     </div>
 
-                    <div className="admin-address">
+                    <div className="delivery-address">
 
                       <strong>
                         Delivery Address:
@@ -521,113 +683,116 @@ function AdminOrders() {
 
                       <p>
                         {order.address ||
-                          "Address unavailable"}
+                          "N/A"}
                       </p>
 
                     </div>
 
                   </div>
 
-                  {/* =================================================
-                      PRODUCTS
-                  ================================================= */}
+                  {/* =======================================
+                      ORDER ITEMS
+                  ======================================= */}
 
-                  <div className="admin-products-section">
+                  <div className="order-items-section">
 
                     <h3>
-                      Products
+                      Order Items
                     </h3>
 
-                    {orderItems.length > 0 ? (
-                      <div className="admin-products-list">
+                    {Array.isArray(
+                      order.items
+                    ) &&
+                    order.items.length > 0 ? (
 
-                        {orderItems.map(
-                          (item, index) => {
+                      <div className="order-items">
 
-                            const quantity =
-                              Number(
-                                item.quantity ||
-                                  0
-                              );
+                        {order.items.map(
+                          (item) => (
 
-                            const price =
-                              Number(
-                                item.price ||
-                                  0
-                              );
+                            <div
+                              key={
+                                item.id ||
+                                `${order.id}-${item.product_id}`
+                              }
+                              className="order-item"
+                            >
 
-                            const itemTotal =
-                              price *
-                              quantity;
+                              <div className="order-item-info">
 
-                            return (
-                              <div
-                                className="admin-product-item"
-                                key={
-                                  item.id ||
-                                  `${orderId}-${index}`
-                                }
-                              >
+                                <strong>
+                                  {
+                                    item.product_name
+                                  }
+                                </strong>
 
-                                <div>
-                                  <p className="admin-product-name">
-                                    {item.product_name ||
-                                      item.name ||
-                                      `Product #${item.product_id}`}
-                                  </p>
-
-                                  <p className="admin-product-quantity">
-                                    Quantity:{" "}
-                                    {quantity}
-                                  </p>
-                                </div>
-
-                                <div className="admin-product-price">
-                                  ₹{" "}
-                                  {itemTotal.toFixed(
-                                    2
-                                  )}
-                                </div>
+                                <span>
+                                  Quantity:{" "}
+                                  {
+                                    item.quantity
+                                  }
+                                </span>
 
                               </div>
-                            );
-                          }
+
+                              <div className="order-item-price">
+
+                                {formatPrice(
+                                  Number(
+                                    item.price
+                                  ) *
+                                    Number(
+                                      item.quantity
+                                    )
+                                )}
+
+                              </div>
+
+                            </div>
+
+                          )
                         )}
 
                       </div>
+
                     ) : (
-                      <p className="admin-no-products">
-                        Product details unavailable.
+
+                      <p className="no-order-items">
+                        No order items found.
                       </p>
+
                     )}
 
                   </div>
 
-                  {/* =================================================
-                      TOTAL
-                  ================================================= */}
+                  {/* =======================================
+                      ORDER TOTAL
+                  ======================================= */}
 
-                  <div className="admin-order-total">
+                  <div className="order-total-section">
 
                     <span>
                       Order Total
                     </span>
 
                     <strong>
-                      ₹{" "}
-                      {totalAmount.toFixed(2)}
+                      {formatPrice(
+                        order.total_amount ||
+                          order.total
+                      )}
                     </strong>
 
                   </div>
 
                 </div>
-              );
-            })}
 
-          </div>
-        )}
+              ))}
+
+            </div>
+          )}
 
       </div>
+
     </section>
   );
 }

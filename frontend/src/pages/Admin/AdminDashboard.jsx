@@ -5,13 +5,18 @@ import "./AdminDashboard.css";
 function AdminDashboard() {
   const navigate = useNavigate();
 
+  // =====================================================
+  // STATE
+  // =====================================================
+
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ==========================================
+  // =====================================================
   // FETCH ALL ORDERS
-  // ==========================================
+  // =====================================================
+
   const fetchOrders = async () => {
     try {
       setLoading(true);
@@ -19,20 +24,30 @@ function AdminDashboard() {
 
       const token = localStorage.getItem("token");
 
+      // -------------------------------------------------
+      // CHECK LOGIN
+      // -------------------------------------------------
+
       if (!token) {
         navigate("/login");
         return;
       }
 
+      // -------------------------------------------------
+      // GET ADMIN ORDERS
+      // -------------------------------------------------
+
       const response = await fetch(
         `http://localhost:5000/api/admin/orders?t=${Date.now()}`,
         {
           method: "GET",
+
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
             "Cache-Control": "no-cache",
           },
+
           cache: "no-store",
         }
       );
@@ -44,9 +59,10 @@ function AdminDashboard() {
         result
       );
 
-      // ==========================================
+      // -------------------------------------------------
       // AUTH ERROR
-      // ==========================================
+      // -------------------------------------------------
+
       if (
         response.status === 401 ||
         response.status === 403
@@ -55,31 +71,43 @@ function AdminDashboard() {
         localStorage.removeItem("user");
 
         navigate("/login");
+
         return;
       }
 
-      // ==========================================
+      // -------------------------------------------------
       // API ERROR
-      // ==========================================
+      // -------------------------------------------------
+
       if (!response.ok) {
         throw new Error(
-          result.message ||
+          result?.message ||
             "Failed to fetch admin orders"
         );
       }
 
-      // ==========================================
-      // GET ORDERS
-      // ==========================================
+      // -------------------------------------------------
+      // EXTRACT ORDERS
+      // -------------------------------------------------
+
       let ordersData = [];
 
       if (Array.isArray(result)) {
         ordersData = result;
-      } else if (Array.isArray(result.data)) {
+      } else if (
+        Array.isArray(result?.data)
+      ) {
         ordersData = result.data;
-      } else if (Array.isArray(result.orders)) {
+      } else if (
+        Array.isArray(result?.orders)
+      ) {
         ordersData = result.orders;
       }
+
+      console.log(
+        "ADMIN DASHBOARD ORDERS:",
+        ordersData
+      );
 
       setOrders(ordersData);
     } catch (err) {
@@ -89,7 +117,7 @@ function AdminDashboard() {
       );
 
       setError(
-        err.message ||
+        err?.message ||
           "Failed to load dashboard"
       );
     } finally {
@@ -97,12 +125,14 @@ function AdminDashboard() {
     }
   };
 
-  // ==========================================
+  // =====================================================
   // LOAD DASHBOARD
-  // ==========================================
+  // =====================================================
+
   useEffect(() => {
     fetchOrders();
 
+    // Refresh every 10 seconds
     const interval = setInterval(() => {
       fetchOrders();
     }, 10000);
@@ -112,9 +142,9 @@ function AdminDashboard() {
     };
   }, []);
 
-  // ==========================================
-  // CALCULATE STATISTICS
-  // ==========================================
+  // =====================================================
+  // STATISTICS
+  // =====================================================
 
   const totalOrders = orders.length;
 
@@ -148,6 +178,11 @@ function AdminDashboard() {
       order.status === "Cancelled"
   ).length;
 
+  // =====================================================
+  // TOTAL REVENUE
+  // Cancelled orders are excluded
+  // =====================================================
+
   const totalRevenue = orders
     .filter(
       (order) =>
@@ -164,9 +199,9 @@ function AdminDashboard() {
       0
     );
 
-  // ==========================================
+  // =====================================================
   // LOADING
-  // ==========================================
+  // =====================================================
 
   if (loading) {
     return (
@@ -174,11 +209,14 @@ function AdminDashboard() {
         <div className="admin-dashboard-container">
 
           <div className="dashboard-loading">
-            <div className="dashboard-spinner"></div>
+
+            <div className="dashboard-spinner">
+            </div>
 
             <p>
               Loading admin dashboard...
             </p>
+
           </div>
 
         </div>
@@ -186,9 +224,9 @@ function AdminDashboard() {
     );
   }
 
-  // ==========================================
+  // =====================================================
   // ERROR
-  // ==========================================
+  // =====================================================
 
   if (error) {
     return (
@@ -196,7 +234,9 @@ function AdminDashboard() {
         <div className="admin-dashboard-container">
 
           <div className="dashboard-header">
+
             <div>
+
               <p className="dashboard-label">
                 ADMIN PANEL
               </p>
@@ -204,7 +244,9 @@ function AdminDashboard() {
               <h1>
                 Admin Dashboard
               </h1>
+
             </div>
+
           </div>
 
           <div className="dashboard-error">
@@ -236,21 +278,23 @@ function AdminDashboard() {
     );
   }
 
-  // ==========================================
+  // =====================================================
   // DASHBOARD
-  // ==========================================
+  // =====================================================
 
   return (
     <section className="admin-dashboard-page">
+
       <div className="admin-dashboard-container">
 
-        {/* ======================================
+        {/* =================================================
             HEADER
-        ====================================== */}
+        ================================================= */}
 
         <div className="dashboard-header">
 
           <div>
+
             <p className="dashboard-label">
               ADMIN PANEL
             </p>
@@ -263,6 +307,7 @@ function AdminDashboard() {
               Manage your homemade chocolate
               orders and track your business.
             </p>
+
           </div>
 
           <button
@@ -275,11 +320,13 @@ function AdminDashboard() {
 
         </div>
 
-        {/* ======================================
-            REVENUE + TOTAL ORDERS
-        ====================================== */}
+        {/* =================================================
+            MAIN STATISTICS
+        ================================================= */}
 
         <div className="dashboard-main-stats">
+
+          {/* TOTAL REVENUE */}
 
           <div className="dashboard-stat-card revenue-card">
 
@@ -288,6 +335,7 @@ function AdminDashboard() {
             </div>
 
             <div>
+
               <p>
                 Total Revenue
               </p>
@@ -302,9 +350,12 @@ function AdminDashboard() {
                   }
                 )}
               </h2>
+
             </div>
 
           </div>
+
+          {/* TOTAL ORDERS */}
 
           <div className="dashboard-stat-card orders-card">
 
@@ -313,6 +364,7 @@ function AdminDashboard() {
             </div>
 
             <div>
+
               <p>
                 Total Orders
               </p>
@@ -320,21 +372,23 @@ function AdminDashboard() {
               <h2>
                 {totalOrders}
               </h2>
+
             </div>
 
           </div>
 
         </div>
 
-        {/* ======================================
-            ORDER STATUS CARDS
-        ====================================== */}
+        {/* =================================================
+            ORDER STATUS
+        ================================================= */}
 
         <div className="dashboard-section">
 
           <div className="dashboard-section-header">
 
             <div>
+
               <p className="section-label">
                 ORDER OVERVIEW
               </p>
@@ -342,13 +396,14 @@ function AdminDashboard() {
               <h2>
                 Order Status
               </h2>
+
             </div>
 
           </div>
 
           <div className="dashboard-status-grid">
 
-            {/* Pending */}
+            {/* PENDING */}
 
             <div className="status-card pending-card">
 
@@ -357,6 +412,7 @@ function AdminDashboard() {
               </div>
 
               <div>
+
                 <p>
                   Pending
                 </p>
@@ -364,11 +420,12 @@ function AdminDashboard() {
                 <strong>
                   {pendingOrders}
                 </strong>
+
               </div>
 
             </div>
 
-            {/* Confirmed */}
+            {/* CONFIRMED */}
 
             <div className="status-card confirmed-card">
 
@@ -377,6 +434,7 @@ function AdminDashboard() {
               </div>
 
               <div>
+
                 <p>
                   Confirmed
                 </p>
@@ -384,11 +442,12 @@ function AdminDashboard() {
                 <strong>
                   {confirmedOrders}
                 </strong>
+
               </div>
 
             </div>
 
-            {/* Processing */}
+            {/* PROCESSING */}
 
             <div className="status-card processing-card">
 
@@ -397,6 +456,7 @@ function AdminDashboard() {
               </div>
 
               <div>
+
                 <p>
                   Processing
                 </p>
@@ -404,11 +464,12 @@ function AdminDashboard() {
                 <strong>
                   {processingOrders}
                 </strong>
+
               </div>
 
             </div>
 
-            {/* Shipped */}
+            {/* SHIPPED */}
 
             <div className="status-card shipped-card">
 
@@ -417,6 +478,7 @@ function AdminDashboard() {
               </div>
 
               <div>
+
                 <p>
                   Shipped
                 </p>
@@ -424,11 +486,12 @@ function AdminDashboard() {
                 <strong>
                   {shippedOrders}
                 </strong>
+
               </div>
 
             </div>
 
-            {/* Delivered */}
+            {/* DELIVERED */}
 
             <div className="status-card delivered-card">
 
@@ -437,6 +500,7 @@ function AdminDashboard() {
               </div>
 
               <div>
+
                 <p>
                   Delivered
                 </p>
@@ -444,11 +508,12 @@ function AdminDashboard() {
                 <strong>
                   {deliveredOrders}
                 </strong>
+
               </div>
 
             </div>
 
-            {/* Cancelled */}
+            {/* CANCELLED */}
 
             <div className="status-card cancelled-card">
 
@@ -457,6 +522,7 @@ function AdminDashboard() {
               </div>
 
               <div>
+
                 <p>
                   Cancelled
                 </p>
@@ -464,6 +530,7 @@ function AdminDashboard() {
                 <strong>
                   {cancelledOrders}
                 </strong>
+
               </div>
 
             </div>
@@ -472,15 +539,16 @@ function AdminDashboard() {
 
         </div>
 
-        {/* ======================================
+        {/* =================================================
             QUICK ACTIONS
-        ====================================== */}
+        ================================================= */}
 
         <div className="dashboard-section">
 
           <div className="dashboard-section-header">
 
             <div>
+
               <p className="section-label">
                 QUICK ACTIONS
               </p>
@@ -488,21 +556,26 @@ function AdminDashboard() {
               <h2>
                 Manage Store
               </h2>
+
             </div>
 
           </div>
 
           <div className="quick-actions">
 
+            {/* MANAGE ORDERS */}
+
             <Link
               to="/admin/orders"
               className="quick-action"
             >
+
               <span>
                 📦
               </span>
 
               <div>
+
                 <strong>
                   Manage Orders
                 </strong>
@@ -511,49 +584,59 @@ function AdminDashboard() {
                   View and update customer
                   orders
                 </p>
+
               </div>
 
               <b>
                 →
               </b>
+
             </Link>
 
+            {/* MANAGE PRODUCTS */}
+
             <Link
-              to="/products"
+              to="/admin/products"
               className="quick-action"
             >
+
               <span>
                 🍫
               </span>
 
               <div>
+
                 <strong>
-                  View Products
+                  Manage Products
                 </strong>
 
                 <p>
-                  View your chocolate products
+                  Add, edit and manage
+                  chocolate products
                 </p>
+
               </div>
 
               <b>
                 →
               </b>
+
             </Link>
 
           </div>
 
         </div>
 
-        {/* ======================================
+        {/* =================================================
             RECENT ORDERS
-        ====================================== */}
+        ================================================= */}
 
         <div className="dashboard-section">
 
           <div className="dashboard-section-header">
 
             <div>
+
               <p className="section-label">
                 RECENT ACTIVITY
               </p>
@@ -561,6 +644,7 @@ function AdminDashboard() {
               <h2>
                 Recent Orders
               </h2>
+
             </div>
 
             <Link
@@ -572,9 +656,12 @@ function AdminDashboard() {
 
           </div>
 
+          {/* NO ORDERS */}
+
           {orders.length === 0 ? (
 
             <div className="no-dashboard-orders">
+
               <div>
                 📦
               </div>
@@ -582,6 +669,7 @@ function AdminDashboard() {
               <p>
                 No orders yet.
               </p>
+
             </div>
 
           ) : (
@@ -590,61 +678,80 @@ function AdminDashboard() {
 
               {orders
                 .slice(0, 5)
-                .map((order) => (
+                .map((order) => {
 
-                  <div
-                    key={
-                      order.id ||
-                      order.order_id
-                    }
-                    className="recent-order"
-                  >
+                  const orderId =
+                    order.id ||
+                    order.order_id;
 
-                    <div className="recent-order-info">
+                  const customerName =
+                    order.customer_name ||
+                    order.email ||
+                    "Customer";
 
-                      <strong>
-                        Order #
-                        {order.id ||
-                          order.order_id}
-                      </strong>
+                  const orderTotal =
+                    Number(
+                      order.total_amount ||
+                        order.total ||
+                        0
+                    );
 
-                      <span>
-                        {order.customer_name ||
-                          order.email ||
-                          "Customer"}
-                      </span>
+                  const orderStatus =
+                    order.status ||
+                    "Pending";
 
-                    </div>
+                  const statusClass =
+                    String(
+                      orderStatus
+                    )
+                      .toLowerCase()
+                      .replace(
+                        /\s+/g,
+                        "-"
+                      );
 
-                    <div className="recent-order-total">
-
-                      ₹{" "}
-                      {Number(
-                        order.total_amount ||
-                          order.total ||
-                          0
-                      ).toFixed(2)}
-
-                    </div>
-
+                  return (
                     <div
-                      className={`recent-order-status status-${String(
-                        order.status ||
-                          "Pending"
-                      )
-                        .toLowerCase()
-                        .replace(
-                          /\s+/g,
-                          "-"
-                        )}`}
+                      key={orderId}
+                      className="recent-order"
                     >
-                      {order.status ||
-                        "Pending"}
+
+                      {/* ORDER INFO */}
+
+                      <div className="recent-order-info">
+
+                        <strong>
+                          Order #{orderId}
+                        </strong>
+
+                        <span>
+                          {customerName}
+                        </span>
+
+                      </div>
+
+                      {/* TOTAL */}
+
+                      <div className="recent-order-total">
+
+                        ₹{" "}
+                        {orderTotal.toFixed(
+                          2
+                        )}
+
+                      </div>
+
+                      {/* STATUS */}
+
+                      <div
+                        className={`recent-order-status status-${statusClass}`}
+                      >
+                        {orderStatus}
+                      </div>
+
                     </div>
-
-                  </div>
-
-                ))}
+                  );
+                })}
 
             </div>
 
@@ -653,6 +760,7 @@ function AdminDashboard() {
         </div>
 
       </div>
+
     </section>
   );
 }

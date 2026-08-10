@@ -8,6 +8,8 @@ const cors = require("cors");
 const authRoutes = require("./routes/authRoutes");
 const productRoutes = require("./routes/productRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+
+const adminRoutes = require("./routes/adminRoutes");
 const adminOrderRoutes = require("./routes/adminOrderRoutes");
 
 // =====================================================
@@ -16,15 +18,19 @@ const adminOrderRoutes = require("./routes/adminOrderRoutes");
 
 const app = express();
 
+// =====================================================
+// TEST ROUTE
+// =====================================================
+
 app.get("/test", (req, res) => {
-  res.json({
+  res.status(200).json({
     success: true,
     message: "APP.JS IS DEFINITELY RUNNING",
   });
 });
 
 // =====================================================
-// MIDDLEWARE
+// CORS
 // =====================================================
 
 app.use(
@@ -33,6 +39,10 @@ app.use(
     credentials: true,
   })
 );
+
+// =====================================================
+// BODY PARSERS
+// =====================================================
 
 app.use(express.json());
 
@@ -57,16 +67,38 @@ app.get("/", (req, res) => {
 // API ROUTES
 // =====================================================
 
-// Authentication
+// -----------------------------------------------------
+// AUTHENTICATION
+// -----------------------------------------------------
+
 app.use("/api/auth", authRoutes);
 
-// Products
+// -----------------------------------------------------
+// PRODUCTS
+// -----------------------------------------------------
+
 app.use("/api/products", productRoutes);
 
-// Customer Orders
+// -----------------------------------------------------
+// CUSTOMER ORDERS
+// -----------------------------------------------------
+
 app.use("/api/orders", orderRoutes);
 
-// Admin Orders
+// -----------------------------------------------------
+// ADMIN GENERAL ROUTES
+// /api/admin/test
+// /api/admin/stats
+// -----------------------------------------------------
+
+app.use("/api/admin", adminRoutes);
+
+// -----------------------------------------------------
+// ADMIN ORDER ROUTES
+// /api/admin/orders
+// /api/admin/orders/:id/status
+// -----------------------------------------------------
+
 app.use("/api/admin", adminOrderRoutes);
 
 // =====================================================
@@ -90,7 +122,9 @@ app.use((err, req, res, next) => {
 
   res.status(err.status || 500).json({
     success: false,
-    message: err.message || "Internal server error",
+    message:
+      err.message || "Internal server error",
+
     error:
       process.env.NODE_ENV === "production"
         ? undefined
