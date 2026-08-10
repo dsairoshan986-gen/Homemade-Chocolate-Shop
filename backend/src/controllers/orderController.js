@@ -82,19 +82,23 @@ const createOrder = async (req, res) => {
     await client.query("BEGIN");
 
     // ===================================================
-    // VALIDATE PRODUCTS AND CALCULATE TOTAL
+    // CALCULATE TOTAL
     // ===================================================
 
     let calculatedTotal = 0;
 
     const validatedItems = [];
 
+    // ===================================================
+    // VALIDATE EACH PRODUCT
+    // ===================================================
+
     for (const item of items) {
       const productId = Number(item.product_id);
       const quantity = Number(item.quantity);
 
       // -------------------------------------------------
-      // Validate product ID
+      // VALIDATE PRODUCT ID
       // -------------------------------------------------
 
       if (!productId || productId <= 0) {
@@ -107,10 +111,13 @@ const createOrder = async (req, res) => {
       }
 
       // -------------------------------------------------
-      // Validate quantity
+      // VALIDATE QUANTITY
       // -------------------------------------------------
 
-      if (!quantity || quantity <= 0) {
+      if (
+        !Number.isInteger(quantity) ||
+        quantity <= 0
+      ) {
         await client.query("ROLLBACK");
 
         return res.status(400).json({
@@ -120,7 +127,8 @@ const createOrder = async (req, res) => {
       }
 
       // -------------------------------------------------
-      // Get product from database
+      // GET PRODUCT
+      // FOR UPDATE LOCKS THE PRODUCT ROW
       // -------------------------------------------------
 
       const productResult = await client.query(
@@ -138,7 +146,7 @@ const createOrder = async (req, res) => {
       );
 
       // -------------------------------------------------
-      // Product not found
+      // PRODUCT NOT FOUND
       // -------------------------------------------------
 
       if (productResult.rows.length === 0) {
@@ -152,21 +160,24 @@ const createOrder = async (req, res) => {
 
       const product = productResult.rows[0];
 
+      const currentStock = Number(product.stock);
+
       // -------------------------------------------------
-      // Check stock
+      // CHECK STOCK BEFORE ORDER
       // -------------------------------------------------
 
-      if (Number(product.stock) < quantity) {
+      if (currentStock < quantity) {
         await client.query("ROLLBACK");
 
         return res.status(400).json({
           success: false,
-          message: `${product.name} has only ${product.stock} items available`,
+          message: `${product.name} has only ${currentStock} items available`,
         });
       }
 
       // -------------------------------------------------
-      // Use database price
+      // USE DATABASE PRICE
+      // NEVER TRUST FRONTEND PRICE
       // -------------------------------------------------
 
       const price = Number(product.price);
@@ -174,6 +185,10 @@ const createOrder = async (req, res) => {
       const itemTotal = price * quantity;
 
       calculatedTotal += itemTotal;
+
+      // -------------------------------------------------
+      // STORE VALIDATED ITEM
+      // -------------------------------------------------
 
       validatedItems.push({
         product_id: product.id,
@@ -236,10 +251,14 @@ const createOrder = async (req, res) => {
     const order = orderResult.rows[0];
 
     // ===================================================
-    // CREATE ORDER ITEMS
+    // CREATE ORDER ITEMS + REDUCE STOCK
     // ===================================================
 
     for (const item of validatedItems) {
+      // -------------------------------------------------
+      // INSERT ORDER ITEM
+      // -------------------------------------------------
+
       await client.query(
         `
         INSERT INTO order_items (
@@ -264,31 +283,59 @@ const createOrder = async (req, res) => {
       );
 
       // -------------------------------------------------
-      // REDUCE STOCK
+      // SAFE STOCK UPDATE
+      //
+      // IMPORTANT:
+      // Stock is reduced ONLY if enough stock exists.
+      // This prevents negative stock.
       // -------------------------------------------------
 
-      await client.query(
-        `
-        UPDATE products
-        SET stock = stock - $1
-        WHERE id = $2
-        `,
-        [
-          item.quantity,
-          item.product_id,
-        ]
+      const stockUpdateResult =
+        await client.query(
+          `
+          UPDATE products
+          SET stock = stock - $1
+          WHERE id = $2
+            AND stock >= $1
+          RETURNING
+            id,
+            name,
+            stock
+          `,
+          [
+            item.quantity,
+            item.product_id,
+          ]
+        );
+
+      // -------------------------------------------------
+      // STOCK UPDATE FAILED
+      // -------------------------------------------------
+
+      if (stockUpdateResult.rows.length === 0) {
+        await client.query("ROLLBACK");
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "Insufficient stock for this product",
+        });
+      }
+
+      console.log(
+        `Stock updated: ${stockUpdateResult.rows[0].name} → ${stockUpdateResult.rows[0].stock}`
       );
     }
 
     // ===================================================
-    // COMMIT
-    // ===================================================
+    // COMMIT TRANSACTION
+    // =====================================================
 
     await client.query("COMMIT");
 
     // ===================================================
     // SUCCESS RESPONSE
-    // ===================================================
+    // =====================================================
 
     return res.status(201).json({
       success: true,
@@ -325,10 +372,13 @@ const createOrder = async (req, res) => {
       error: error.message,
     });
   } finally {
+    // ===================================================
+    // RELEASE DATABASE CONNECTION
+    // ===================================================
+
     client.release();
   }
 };
-
 
 // =====================================================
 // GET MY ORDERS
@@ -363,7 +413,7 @@ const getOrders = async (req, res) => {
     );
 
     // ===================================================
-    // GET USER ORDERS
+    // GET CUSTOMER ORDERS
     // ===================================================
 
     const ordersResult = await db.query(
@@ -390,7 +440,7 @@ const getOrders = async (req, res) => {
     const orders = [];
 
     // ===================================================
-    // GET ITEMS FOR EACH ORDER
+    // GET ORDER ITEMS
     // ===================================================
 
     for (const order of ordersResult.rows) {
@@ -440,7 +490,6 @@ const getOrders = async (req, res) => {
   }
 };
 
-
 // =====================================================
 // GET ALL ORDERS - ADMIN
 // GET /api/admin/orders
@@ -478,7 +527,7 @@ const getAllOrders = async (req, res) => {
     const orders = [];
 
     // ===================================================
-    // GET ITEMS FOR EACH ORDER
+    // GET ORDER ITEMS
     // ===================================================
 
     for (const order of ordersResult.rows) {
@@ -532,7 +581,6 @@ const getAllOrders = async (req, res) => {
   }
 };
 
-
 // =====================================================
 // UPDATE ORDER STATUS - ADMIN
 // PUT /api/admin/orders/:id/status
@@ -544,7 +592,9 @@ const updateOrderStatus = async (req, res) => {
     // GET ORDER ID
     // ===================================================
 
-    const orderId = Number(req.params.id);
+    const orderId = Number(
+      req.params.id
+    );
 
     // ===================================================
     // GET STATUS
@@ -600,7 +650,7 @@ const updateOrderStatus = async (req, res) => {
     }
 
     // ===================================================
-    // UPDATE DATABASE
+    // UPDATE ORDER STATUS
     // ===================================================
 
     const result = await db.query(
@@ -610,7 +660,10 @@ const updateOrderStatus = async (req, res) => {
       WHERE id = $2
       RETURNING *
       `,
-      [status, orderId]
+      [
+        status,
+        orderId,
+      ]
     );
 
     // ===================================================
@@ -630,7 +683,8 @@ const updateOrderStatus = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Order status updated successfully",
+      message:
+        "Order status updated successfully",
       data: result.rows[0],
     });
   } catch (error) {
@@ -641,12 +695,12 @@ const updateOrderStatus = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to update order status",
+      message:
+        "Failed to update order status",
       error: error.message,
     });
   }
 };
-
 
 // =====================================================
 // EXPORT CONTROLLERS

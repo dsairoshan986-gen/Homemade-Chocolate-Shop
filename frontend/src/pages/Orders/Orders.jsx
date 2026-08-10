@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Orders.css";
 
+const ORDER_STATUSES = [
+  "Pending",
+  "Confirmed",
+  "Processing",
+  "Shipped",
+  "Delivered",
+];
+
 function Orders() {
   const navigate = useNavigate();
 
@@ -10,11 +18,10 @@ function Orders() {
   const [error, setError] = useState("");
 
   // ==========================================
-  // FETCH ORDERS
+  // FETCH CUSTOMER ORDERS
   // ==========================================
   const fetchOrders = async () => {
     try {
-      setLoading(true);
       setError("");
 
       const token = localStorage.getItem("token");
@@ -24,7 +31,6 @@ function Orders() {
         return;
       }
 
-      // Add timestamp to prevent cached response
       const response = await fetch(
         `http://localhost:5000/api/orders?t=${Date.now()}`,
         {
@@ -45,7 +51,10 @@ function Orders() {
       // ==========================================
       // AUTH ERROR
       // ==========================================
-      if (response.status === 401 || response.status === 403) {
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
 
@@ -53,6 +62,9 @@ function Orders() {
         return;
       }
 
+      // ==========================================
+      // API ERROR
+      // ==========================================
       if (!response.ok) {
         throw new Error(
           result.message || "Failed to fetch orders"
@@ -60,7 +72,7 @@ function Orders() {
       }
 
       // ==========================================
-      // GET ORDERS FROM RESPONSE
+      // GET ORDERS
       // ==========================================
       let ordersData = [];
 
@@ -76,20 +88,29 @@ function Orders() {
       // SORT NEWEST ORDER FIRST
       // ==========================================
       ordersData.sort((a, b) => {
-        const idA = Number(a.id || a.order_id || 0);
-        const idB = Number(b.id || b.order_id || 0);
+        const idA = Number(
+          a.id || a.order_id || 0
+        );
+
+        const idB = Number(
+          b.id || b.order_id || 0
+        );
 
         return idB - idA;
       });
 
-      console.log("ORDERS AFTER SORTING:", ordersData);
+      console.log(
+        "ORDERS AFTER SORTING:",
+        ordersData
+      );
 
       setOrders(ordersData);
     } catch (err) {
       console.error("Orders Error:", err);
 
       setError(
-        err.message || "Failed to load your orders."
+        err.message ||
+          "Failed to load your orders."
       );
     } finally {
       setLoading(false);
@@ -97,11 +118,30 @@ function Orders() {
   };
 
   // ==========================================
-  // LOAD ORDERS
+  // LOAD ORDERS + AUTO REFRESH
   // ==========================================
   useEffect(() => {
     fetchOrders();
+
+    const interval = setInterval(() => {
+      console.log(
+        "Automatically refreshing customer orders..."
+      );
+
+      fetchOrders();
+    }, 5000);
+
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
+
+  // ==========================================
+  // GET STATUS INDEX
+  // ==========================================
+  const getStatusIndex = (status) => {
+    return ORDER_STATUSES.indexOf(status);
+  };
 
   // ==========================================
   // LOADING
@@ -111,7 +151,9 @@ function Orders() {
       <section className="orders-page">
         <div className="orders-container">
           <div className="orders-loading">
-            Loading your orders...
+            <div className="loading-spinner"></div>
+
+            <p>Loading your orders...</p>
           </div>
         </div>
       </section>
@@ -129,19 +171,26 @@ function Orders() {
           <div className="orders-header">
             <div>
               <p className="orders-label">
-                📦 Order History
+                📦 ORDER HISTORY
               </p>
 
               <h1>My Orders</h1>
 
               <p>
-                View your previous chocolate orders here.
+                View your previous chocolate
+                orders here.
               </p>
             </div>
           </div>
 
           <div className="orders-error">
-            <h2>Unable to load orders</h2>
+            <div className="error-icon">
+              ⚠️
+            </div>
+
+            <h2>
+              Unable to load orders
+            </h2>
 
             <p>{error}</p>
 
@@ -170,13 +219,14 @@ function Orders() {
           <div className="orders-header">
             <div>
               <p className="orders-label">
-                📦 Order History
+                📦 ORDER HISTORY
               </p>
 
               <h1>My Orders</h1>
 
               <p>
-                View your previous chocolate orders here.
+                View your previous chocolate
+                orders here.
               </p>
             </div>
 
@@ -222,18 +272,22 @@ function Orders() {
     <section className="orders-page">
       <div className="orders-container">
 
-        {/* HEADER */}
+        {/* ==================================
+            HEADER
+        ================================== */}
+
         <div className="orders-header">
 
           <div>
             <p className="orders-label">
-              📦 Order History
+              📦 ORDER HISTORY
             </p>
 
             <h1>My Orders</h1>
 
             <p>
-              View your previous chocolate orders here.
+              View your previous chocolate
+              orders here.
             </p>
           </div>
 
@@ -247,7 +301,10 @@ function Orders() {
 
         </div>
 
-        {/* ORDERS LIST */}
+        {/* ==================================
+            ORDERS LIST
+        ================================== */}
+
         <div className="orders-list">
 
           {orders.map((order) => {
@@ -267,6 +324,15 @@ function Orders() {
               0
             );
 
+            const orderStatus =
+              order.status || "Pending";
+
+            const statusIndex =
+              getStatusIndex(orderStatus);
+
+            const isCancelled =
+              orderStatus === "Cancelled";
+
             return (
               <div
                 key={orderId}
@@ -276,6 +342,7 @@ function Orders() {
                 {/* ==================================
                     ORDER HEADER
                 ================================== */}
+
                 <div className="order-card-header">
 
                   <div>
@@ -293,44 +360,145 @@ function Orders() {
                   </div>
 
                   <div
-                    className={`order-status ${String(
-                      order.status || "Pending"
-                    ).toLowerCase()}`}
+                    className={`order-status status-${orderStatus
+                      .toLowerCase()
+                      .replace(/\s+/g, "-")}`}
                   >
-                    {order.status || "Pending"}
+                    {orderStatus}
                   </div>
 
                 </div>
 
                 {/* ==================================
+                    ORDER TRACKING
+                ================================== */}
+
+                {isCancelled ? (
+                  <div className="order-cancelled">
+
+                    <div className="cancelled-icon">
+                      ✕
+                    </div>
+
+                    <div>
+                      <strong>
+                        Order Cancelled
+                      </strong>
+
+                      <p>
+                        This order has been
+                        cancelled.
+                      </p>
+                    </div>
+
+                  </div>
+                ) : (
+                  <div className="order-tracking">
+
+                    {ORDER_STATUSES.map(
+                      (status, index) => {
+
+                        const isCompleted =
+                          index <= statusIndex;
+
+                        const isCurrent =
+                          status === orderStatus;
+
+                        return (
+                          <div
+                            key={status}
+                            className={`tracking-step ${
+                              isCompleted
+                                ? "completed"
+                                : ""
+                            } ${
+                              isCurrent
+                                ? "current"
+                                : ""
+                            }`}
+                          >
+
+                            {/* CIRCLE */}
+
+                            <div className="tracking-circle">
+
+                              {isCompleted
+                                ? "✓"
+                                : index + 1}
+
+                            </div>
+
+                            {/* LABEL */}
+
+                            <div className="tracking-label">
+                              {status}
+                            </div>
+
+                            {/* LINE */}
+
+                            {index <
+                              ORDER_STATUSES.length -
+                                1 && (
+                              <div
+                                className={`tracking-line ${
+                                  index <
+                                  statusIndex
+                                    ? "completed"
+                                    : ""
+                                }`}
+                              />
+                            )}
+
+                          </div>
+                        );
+                      }
+                    )}
+
+                  </div>
+                )}
+
+                {/* ==================================
                     CUSTOMER INFORMATION
                 ================================== */}
+
                 <div className="order-customer">
+
+                  <h3>
+                    Delivery Details
+                  </h3>
 
                   {order.customer_name && (
                     <p>
-                      <strong>Customer:</strong>{" "}
+                      <strong>
+                        Customer:
+                      </strong>{" "}
                       {order.customer_name}
                     </p>
                   )}
 
                   {order.email && (
                     <p>
-                      <strong>Email:</strong>{" "}
+                      <strong>
+                        Email:
+                      </strong>{" "}
                       {order.email}
                     </p>
                   )}
 
                   {order.phone && (
                     <p>
-                      <strong>Phone:</strong>{" "}
+                      <strong>
+                        Phone:
+                      </strong>{" "}
                       {order.phone}
                     </p>
                   )}
 
                   {order.address && (
                     <p>
-                      <strong>Address:</strong>{" "}
+                      <strong>
+                        Address:
+                      </strong>{" "}
                       {order.address}
 
                       {order.city
@@ -352,9 +520,12 @@ function Orders() {
                 {/* ==================================
                     PRODUCTS
                 ================================== */}
+
                 <div className="order-items">
 
-                  <h3>Products</h3>
+                  <h3>
+                    Products
+                  </h3>
 
                   {orderItems.length > 0 ? (
 
@@ -365,14 +536,19 @@ function Orders() {
                           item.product_name ||
                           item.name ||
                           `Product #${
-                            item.product_id || ""
+                            item.product_id ||
+                            ""
                           }`;
 
                         const quantity =
-                          Number(item.quantity || 0);
+                          Number(
+                            item.quantity || 0
+                          );
 
                         const price =
-                          Number(item.price || 0);
+                          Number(
+                            item.price || 0
+                          );
 
                         const itemTotal =
                           price * quantity;
@@ -392,13 +568,16 @@ function Orders() {
                               </p>
 
                               <p className="item-quantity">
-                                Quantity: {quantity}
+                                Quantity:{" "}
+                                {quantity}
                               </p>
                             </div>
 
                             <p className="item-price">
                               ₹{" "}
-                              {itemTotal.toFixed(2)}
+                              {itemTotal.toFixed(
+                                2
+                              )}
                             </p>
 
                           </div>
@@ -409,7 +588,8 @@ function Orders() {
                   ) : (
 
                     <p className="no-items">
-                      Order item details unavailable.
+                      Order item details
+                      unavailable.
                     </p>
 
                   )}
@@ -419,9 +599,12 @@ function Orders() {
                 {/* ==================================
                     TOTAL
                 ================================== */}
+
                 <div className="order-total">
 
-                  <span>Total</span>
+                  <span>
+                    Total
+                  </span>
 
                   <strong>
                     ₹ {total.toFixed(2)}
