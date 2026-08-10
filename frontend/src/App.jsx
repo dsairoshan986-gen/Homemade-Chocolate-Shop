@@ -1,89 +1,92 @@
 import React from "react";
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-} from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 
-// ========================================
+// =====================================================
 // LAYOUT
-// ========================================
+// =====================================================
+
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 
-// ========================================
+// =====================================================
 // HOME
-// ========================================
+// =====================================================
+
 import Home from "./pages/Home/Home";
 
-// ========================================
-// CUSTOMER PAGES
-// ========================================
+// =====================================================
+// ABOUT
+// =====================================================
+
 import About from "./pages/About/About";
+
+// =====================================================
+// PRODUCTS
+// =====================================================
+
 import Products from "./pages/Products/Products";
 import ProductDetails from "./pages/ProductDetails/ProductDetails";
+
+// =====================================================
+// CART
+// =====================================================
+
 import Cart from "./pages/Cart/Cart";
+
+// =====================================================
+// CHECKOUT
+// =====================================================
+
 import Checkout from "./pages/Checkout/Checkout";
 
-// ========================================
-// AUTHENTICATION
-// ========================================
+// =====================================================
+// AUTH
+// =====================================================
+
 import Login from "./pages/Login/Login";
 import Register from "./pages/Register/Register";
 
-// ========================================
+// =====================================================
 // ORDERS
-// ========================================
+// =====================================================
+
 import Orders from "./pages/Orders/Orders";
 import OrderSuccess from "./pages/OrderSuccess/OrderSuccess";
 
-// ========================================
-// ADMIN
-// ========================================
-import AdminDashboard from "./pages/Admin/AdminDashboard";
-import AdminProducts from "./pages/Admin/AdminProducts";
+// =====================================================
+// NOT FOUND
+// =====================================================
 
-// ========================================
-// 404
-// ========================================
 import NotFound from "./pages/NotFound/NotFound";
 
-// ========================================
-// CSS
-// ========================================
-import "./App.css";
+// =====================================================
+// ADMIN
+// =====================================================
 
+import AdminDashboard from "./pages/Admin/AdminDashboard";
+import AdminOrders from "./pages/Admin/AdminOrders";
+import AdminProducts from "./pages/Admin/AdminProducts";
+
+// =====================================================
+// APP
+// =====================================================
 
 function App() {
   return (
-    <BrowserRouter>
-
-      {/* ==================================
-          NAVBAR
-      ================================== */}
+    <>
+      {/* Navbar */}
       <Navbar />
 
-
-      {/* ==================================
-          MAIN CONTENT
-      ================================== */}
+      {/* Main Content */}
       <main>
-
         <Routes>
 
-          {/* ==================================
-              HOME
-          ================================== */}
+          {/* ================= PUBLIC ================= */}
 
           <Route
             path="/"
             element={<Home />}
           />
-
-
-          {/* ==================================
-              CUSTOMER PAGES
-          ================================== */}
 
           <Route
             path="/about"
@@ -100,20 +103,21 @@ function App() {
             element={<ProductDetails />}
           />
 
+          {/* ================= CART ================= */}
+
           <Route
             path="/cart"
             element={<Cart />}
           />
+
+          {/* ================= CHECKOUT ================= */}
 
           <Route
             path="/checkout"
             element={<Checkout />}
           />
 
-
-          {/* ==================================
-              AUTHENTICATION
-          ================================== */}
+          {/* ================= AUTH ================= */}
 
           <Route
             path="/login"
@@ -125,10 +129,7 @@ function App() {
             element={<Register />}
           />
 
-
-          {/* ==================================
-              CUSTOMER ORDERS
-          ================================== */}
+          {/* ================= USER ORDERS ================= */}
 
           <Route
             path="/orders"
@@ -140,30 +141,29 @@ function App() {
             element={<OrderSuccess />}
           />
 
+          <Route
+            path="/order-success"
+            element={<OrderSuccess />}
+          />
 
-          {/* ==================================
-              ADMIN DASHBOARD
-          ================================== */}
+          {/* ================= ADMIN ================= */}
 
           <Route
             path="/admin"
             element={<AdminDashboard />}
           />
 
-
-          {/* ==================================
-              ADMIN PRODUCT MANAGEMENT
-          ================================== */}
+          <Route
+            path="/admin/orders"
+            element={<AdminOrders />}
+          />
 
           <Route
             path="/admin/products"
             element={<AdminProducts />}
           />
 
-
-          {/* ==================================
-              404
-          ================================== */}
+          {/* ================= 404 ================= */}
 
           <Route
             path="*"
@@ -171,19 +171,12 @@ function App() {
           />
 
         </Routes>
-
       </main>
 
-
-      {/* ==================================
-          FOOTER
-      ================================== */}
-
+      {/* Footer */}
       <Footer />
-
-    </BrowserRouter>
+    </>
   );
 }
-
 
 export default App;

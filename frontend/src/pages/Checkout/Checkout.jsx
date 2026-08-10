@@ -24,20 +24,45 @@ function Checkout() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // ==============================
-  // CHECK LOGIN
-  // ==============================
+  // =========================================================
+  // LOAD LOGGED-IN USER
+  // =========================================================
+
   useEffect(() => {
     const token = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
 
+    // User must be logged in
     if (!token) {
       navigate("/login");
+      return;
+    }
+
+    // Load user information
+    if (savedUser) {
+      try {
+        const user = JSON.parse(savedUser);
+
+        setFormData((currentData) => ({
+          ...currentData,
+
+          // Use logged-in user's information
+          name: user?.name || "",
+          email: user?.email || "",
+        }));
+      } catch (error) {
+        console.error(
+          "Failed to read logged-in user:",
+          error
+        );
+      }
     }
   }, [navigate]);
 
-  // ==============================
+  // =========================================================
   // HANDLE INPUT CHANGE
-  // ==============================
+  // =========================================================
+
   const handleChange = (event) => {
     const { name, value } = event.target;
 
@@ -47,9 +72,10 @@ function Checkout() {
     }));
   };
 
-  // ==============================
+  // =========================================================
   // PLACE ORDER
-  // ==============================
+  // =========================================================
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -57,47 +83,94 @@ function Checkout() {
     setError("");
 
     try {
-      // Get JWT token
+      // -------------------------------------------------------
+      // GET TOKEN
+      // -------------------------------------------------------
+
       const token = localStorage.getItem("token");
 
-      // Check token
       if (!token) {
         navigate("/login");
         return;
       }
 
-      // Check cart
+      // -------------------------------------------------------
+      // CHECK CART
+      // -------------------------------------------------------
+
       if (!cartItems || cartItems.length === 0) {
         setError("Your cart is empty.");
         return;
       }
 
-      // ==============================
+      // -------------------------------------------------------
+      // GET LOGGED-IN USER
+      // -------------------------------------------------------
+
+      const savedUser = localStorage.getItem("user");
+
+      let loggedInUser = null;
+
+      if (savedUser) {
+        try {
+          loggedInUser = JSON.parse(savedUser);
+        } catch (error) {
+          console.error(
+            "Failed to parse logged-in user:",
+            error
+          );
+        }
+      }
+
+      // -------------------------------------------------------
+      // USE ACCOUNT EMAIL
+      // -------------------------------------------------------
+
+      const orderEmail =
+        loggedInUser?.email || formData.email;
+
+      const customerName =
+        loggedInUser?.name || formData.name;
+
+      // -------------------------------------------------------
       // CREATE ORDER DATA
-      // ==============================
+      // -------------------------------------------------------
+
       const orderData = {
-        customer_name: formData.name,
-        email: formData.email,
+        customer_name: customerName,
+
+        email: orderEmail,
+
         phone: formData.phone,
+
         address: formData.address,
+
         city: formData.city,
+
         state: formData.state,
+
         pincode: formData.pincode,
 
         total_amount: Number(cartTotal),
 
         items: cartItems.map((item) => ({
-          product_id: item.id,
-          quantity: item.quantity,
+          product_id: Number(item.id),
+
+          quantity: Number(item.quantity),
+
           price: Number(item.price),
         })),
       };
 
-      console.log("Sending Order:", orderData);
+      console.log(
+        "Sending Order:",
+        orderData
+      );
 
-      // ==============================
+      // -------------------------------------------------------
       // SEND ORDER TO BACKEND
-      // ==============================
+      // -------------------------------------------------------
+
       const response = await fetch(
         "http://localhost:5000/api/orders",
         {
@@ -105,6 +178,7 @@ function Checkout() {
 
           headers: {
             "Content-Type": "application/json",
+
             Authorization: `Bearer ${token}`,
           },
 
@@ -112,18 +186,23 @@ function Checkout() {
         }
       );
 
-      // ==============================
+      // -------------------------------------------------------
       // READ RESPONSE
-      // ==============================
+      // -------------------------------------------------------
+
       const result = await response.json();
 
-      console.log("Order Response:", result);
+      console.log(
+        "Order Response:",
+        result
+      );
 
-      // ==============================
-      // HANDLE ERROR
-      // ==============================
+      // -------------------------------------------------------
+      // HANDLE BACKEND ERROR
+      // -------------------------------------------------------
+
       if (!response.ok) {
-        // If token is invalid/expired
+        // Token expired or invalid
         if (
           response.status === 401 ||
           response.status === 403
@@ -137,35 +216,51 @@ function Checkout() {
         }
 
         throw new Error(
-          result.message || "Failed to place order"
+          result?.message ||
+            "Failed to place order"
         );
       }
 
-      // ==============================
+      // -------------------------------------------------------
       // ORDER SUCCESS
-      // ==============================
-      console.log("Order created successfully:", result);
+      // -------------------------------------------------------
 
-      // Clear cart
+      console.log(
+        "Order created successfully:",
+        result
+      );
+
+      // Clear shopping cart
       clearCart();
 
-      // Get order ID safely
+      // -------------------------------------------------------
+      // GET ORDER ID
+      // -------------------------------------------------------
+
       const orderId =
         result?.data?.id ||
         result?.order?.id ||
         result?.id;
 
+      // -------------------------------------------------------
+      // NAVIGATE TO SUCCESS PAGE
+      // -------------------------------------------------------
+
       if (orderId) {
-        navigate(`/order-success/${orderId}`);
+        navigate(
+          `/order-success/${orderId}`
+        );
       } else {
         navigate("/order-success");
       }
-
     } catch (error) {
-      console.error("Order Error:", error);
+      console.error(
+        "Order Error:",
+        error
+      );
 
       setError(
-        error.message ||
+        error?.message ||
           "Something went wrong while placing your order."
       );
     } finally {
@@ -173,10 +268,14 @@ function Checkout() {
     }
   };
 
-  // ==============================
+  // =========================================================
   // EMPTY CART
-  // ==============================
-  if (cartItems.length === 0) {
+  // =========================================================
+
+  if (
+    !cartItems ||
+    cartItems.length === 0
+  ) {
     return (
       <section className="min-h-screen bg-[#fffaf0] py-20 px-6">
         <div className="max-w-3xl mx-auto text-center">
@@ -190,12 +289,13 @@ function Checkout() {
           </h1>
 
           <p className="text-gray-600 mt-4">
-            Add some delicious chocolates before checkout.
+            Add some delicious chocolates
+            before checkout.
           </p>
 
           <Link
             to="/products"
-            className="inline-block mt-8 bg-amber-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-amber-800"
+            className="inline-block mt-8 bg-amber-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-amber-800 transition"
           >
             Continue Shopping
           </Link>
@@ -205,19 +305,23 @@ function Checkout() {
     );
   }
 
-  // ==============================
+  // =========================================================
   // CHECKOUT PAGE
-  // ==============================
+  // =========================================================
+
   return (
     <section className="min-h-screen bg-[#fffaf0] py-12 px-6">
 
       <div className="max-w-6xl mx-auto">
 
+        {/* PAGE TITLE */}
+
         <h1 className="text-4xl font-bold text-amber-900 mb-8">
           Checkout
         </h1>
 
-        {/* ERROR MESSAGE */}
+        {/* ERROR */}
+
         {error && (
           <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-5 py-4 rounded-lg">
             {error}
@@ -226,9 +330,9 @@ function Checkout() {
 
         <div className="grid lg:grid-cols-3 gap-8">
 
-          {/* ==============================
+          {/* =================================================
               CUSTOMER DETAILS
-          ============================== */}
+          ================================================= */}
 
           <div className="lg:col-span-2 bg-white rounded-xl shadow-lg p-8">
 
@@ -239,9 +343,11 @@ function Checkout() {
             <form onSubmit={handleSubmit}>
 
               {/* NAME + EMAIL */}
+
               <div className="grid md:grid-cols-2 gap-5">
 
                 {/* NAME */}
+
                 <div>
 
                   <label className="block font-semibold text-gray-700 mb-2">
@@ -261,6 +367,7 @@ function Checkout() {
                 </div>
 
                 {/* EMAIL */}
+
                 <div>
 
                   <label className="block font-semibold text-gray-700 mb-2">
@@ -273,13 +380,19 @@ function Checkout() {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    placeholder="Enter your email"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-600"
+                    readOnly
+                    placeholder="Your account email"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-gray-100 cursor-not-allowed focus:outline-none"
                   />
+
+                  <p className="text-xs text-gray-500 mt-1">
+                    This email comes from your logged-in account.
+                  </p>
 
                 </div>
 
                 {/* PHONE */}
+
                 <div>
 
                   <label className="block font-semibold text-gray-700 mb-2">
@@ -299,6 +412,7 @@ function Checkout() {
                 </div>
 
                 {/* CITY */}
+
                 <div>
 
                   <label className="block font-semibold text-gray-700 mb-2">
@@ -320,6 +434,7 @@ function Checkout() {
               </div>
 
               {/* ADDRESS */}
+
               <div className="mt-5">
 
                 <label className="block font-semibold text-gray-700 mb-2">
@@ -339,9 +454,11 @@ function Checkout() {
               </div>
 
               {/* STATE + PINCODE */}
+
               <div className="grid md:grid-cols-2 gap-5 mt-5">
 
                 {/* STATE */}
+
                 <div>
 
                   <label className="block font-semibold text-gray-700 mb-2">
@@ -361,6 +478,7 @@ function Checkout() {
                 </div>
 
                 {/* PINCODE */}
+
                 <div>
 
                   <label className="block font-semibold text-gray-700 mb-2">
@@ -373,6 +491,8 @@ function Checkout() {
                     value={formData.pincode}
                     onChange={handleChange}
                     required
+                    pattern="[0-9]{6}"
+                    title="Please enter a valid 6-digit pincode"
                     placeholder="Enter pincode"
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-600"
                   />
@@ -381,7 +501,8 @@ function Checkout() {
 
               </div>
 
-              {/* PLACE ORDER BUTTON */}
+              {/* PLACE ORDER */}
+
               <button
                 type="submit"
                 disabled={loading}
@@ -396,9 +517,9 @@ function Checkout() {
 
           </div>
 
-          {/* ==============================
+          {/* =================================================
               ORDER SUMMARY
-          ============================== */}
+          ================================================= */}
 
           <div className="bg-white rounded-xl shadow-lg p-6 h-fit">
 
@@ -406,9 +527,12 @@ function Checkout() {
               Order Summary
             </h2>
 
+            {/* PRODUCTS */}
+
             <div className="mt-6 space-y-4">
 
               {cartItems.map((item) => (
+
                 <div
                   key={item.id}
                   className="flex justify-between gap-4"
@@ -426,15 +550,16 @@ function Checkout() {
 
                   </div>
 
-                  <p className="font-semibold">
+                  <p className="font-semibold whitespace-nowrap">
                     ₹{" "}
                     {(
                       Number(item.price) *
-                      item.quantity
+                      Number(item.quantity)
                     ).toFixed(2)}
                   </p>
 
                 </div>
+
               ))}
 
             </div>
@@ -442,6 +567,7 @@ function Checkout() {
             <hr className="my-6" />
 
             {/* SUBTOTAL */}
+
             <div className="flex justify-between text-gray-700">
 
               <span>
@@ -455,13 +581,14 @@ function Checkout() {
             </div>
 
             {/* DELIVERY */}
+
             <div className="flex justify-between text-gray-700 mt-3">
 
               <span>
                 Delivery
               </span>
 
-              <span>
+              <span className="text-green-700 font-medium">
                 Free
               </span>
 
@@ -470,6 +597,7 @@ function Checkout() {
             <hr className="my-5" />
 
             {/* TOTAL */}
+
             <div className="flex justify-between text-xl font-bold text-amber-900">
 
               <span>

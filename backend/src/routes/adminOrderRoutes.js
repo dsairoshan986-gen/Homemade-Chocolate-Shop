@@ -3,32 +3,32 @@ const express = require("express");
 const router = express.Router();
 
 const {
-  createOrder,
-  getOrders,
+  getAllOrders,
+  updateOrderStatus,
 } = require("../controllers/orderController");
 
 const authMiddleware = require("../middleware/authMiddleware");
 
 // =====================================================
-// CREATE ORDER
-// POST /api/orders
-// =====================================================
-
-router.post(
-  "/",
-  authMiddleware,
-  createOrder
-);
-
-// =====================================================
-// GET MY ORDERS
-// GET /api/orders
+// GET ALL ORDERS
+// GET /api/admin/orders
 // =====================================================
 
 router.get(
-  "/",
+  "/orders",
   authMiddleware,
-  getOrders
+  getAllOrders
+);
+
+// =====================================================
+// UPDATE ORDER STATUS
+// PUT /api/admin/orders/:id/status
+// =====================================================
+
+router.put(
+  "/orders/:id/status",
+  authMiddleware,
+  updateOrderStatus
 );
 
 module.exports = router;

@@ -10,7 +10,7 @@ function Orders() {
   const [error, setError] = useState("");
 
   // ==========================================
-  // FETCH USER ORDERS
+  // FETCH ORDERS
   // ==========================================
   const fetchOrders = async () => {
     try {
@@ -19,29 +19,31 @@ function Orders() {
 
       const token = localStorage.getItem("token");
 
-      // User must be logged in
       if (!token) {
         navigate("/login");
         return;
       }
 
+      // Add timestamp to prevent cached response
       const response = await fetch(
-        "http://localhost:5000/api/orders",
+        `http://localhost:5000/api/orders?t=${Date.now()}`,
         {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
           },
+          cache: "no-store",
         }
       );
 
       const result = await response.json();
 
-      console.log("My Orders API response:", result);
+      console.log("MY ORDERS API RESPONSE:", result);
 
       // ==========================================
-      // TOKEN ERROR
+      // AUTH ERROR
       // ==========================================
       if (response.status === 401 || response.status === 403) {
         localStorage.removeItem("token");
@@ -58,7 +60,7 @@ function Orders() {
       }
 
       // ==========================================
-      // HANDLE DIFFERENT RESPONSE FORMATS
+      // GET ORDERS FROM RESPONSE
       // ==========================================
       let ordersData = [];
 
@@ -69,6 +71,18 @@ function Orders() {
       } else if (Array.isArray(result.orders)) {
         ordersData = result.orders;
       }
+
+      // ==========================================
+      // SORT NEWEST ORDER FIRST
+      // ==========================================
+      ordersData.sort((a, b) => {
+        const idA = Number(a.id || a.order_id || 0);
+        const idB = Number(b.id || b.order_id || 0);
+
+        return idB - idA;
+      });
+
+      console.log("ORDERS AFTER SORTING:", ordersData);
 
       setOrders(ordersData);
     } catch (err) {
@@ -83,7 +97,7 @@ function Orders() {
   };
 
   // ==========================================
-  // LOAD ORDERS WHEN PAGE OPENS
+  // LOAD ORDERS
   // ==========================================
   useEffect(() => {
     fetchOrders();
@@ -111,8 +125,19 @@ function Orders() {
     return (
       <section className="orders-page">
         <div className="orders-container">
+
           <div className="orders-header">
-            <h1>My Orders</h1>
+            <div>
+              <p className="orders-label">
+                📦 Order History
+              </p>
+
+              <h1>My Orders</h1>
+
+              <p>
+                View your previous chocolate orders here.
+              </p>
+            </div>
           </div>
 
           <div className="orders-error">
@@ -128,6 +153,7 @@ function Orders() {
               Try Again
             </button>
           </div>
+
         </div>
       </section>
     );
@@ -140,6 +166,7 @@ function Orders() {
     return (
       <section className="orders-page">
         <div className="orders-container">
+
           <div className="orders-header">
             <div>
               <p className="orders-label">
@@ -152,9 +179,18 @@ function Orders() {
                 View your previous chocolate orders here.
               </p>
             </div>
+
+            <button
+              type="button"
+              onClick={fetchOrders}
+              className="refresh-button"
+            >
+              ↻ Refresh
+            </button>
           </div>
 
           <div className="empty-orders">
+
             <div className="empty-orders-icon">
               📦
             </div>
@@ -171,7 +207,9 @@ function Orders() {
             >
               Shop Chocolates
             </Link>
+
           </div>
+
         </div>
       </section>
     );
@@ -184,8 +222,9 @@ function Orders() {
     <section className="orders-page">
       <div className="orders-container">
 
-        {/* Header */}
+        {/* HEADER */}
         <div className="orders-header">
+
           <div>
             <p className="orders-label">
               📦 Order History
@@ -205,28 +244,28 @@ function Orders() {
           >
             ↻ Refresh
           </button>
+
         </div>
 
-        {/* Orders */}
+        {/* ORDERS LIST */}
         <div className="orders-list">
 
           {orders.map((order) => {
+
+            const orderId =
+              order.id ||
+              order.order_id;
 
             const orderItems =
               Array.isArray(order.items)
                 ? order.items
                 : [];
 
-            const orderId =
-              order.id ||
-              order.order_id;
-
-            const total =
-              Number(
-                order.total_amount ||
-                order.total ||
-                0
-              );
+            const total = Number(
+              order.total_amount ||
+              order.total ||
+              0
+            );
 
             return (
               <div
@@ -234,7 +273,9 @@ function Orders() {
                 className="order-card"
               >
 
-                {/* Order Header */}
+                {/* ==================================
+                    ORDER HEADER
+                ================================== */}
                 <div className="order-card-header">
 
                   <div>
@@ -251,54 +292,55 @@ function Orders() {
                     </p>
                   </div>
 
-                  <div className="order-status">
+                  <div
+                    className={`order-status ${String(
+                      order.status || "Pending"
+                    ).toLowerCase()}`}
+                  >
                     {order.status || "Pending"}
                   </div>
 
                 </div>
 
-                {/* Customer */}
+                {/* ==================================
+                    CUSTOMER INFORMATION
+                ================================== */}
                 <div className="order-customer">
 
                   {order.customer_name && (
                     <p>
-                      <strong>
-                        Customer:
-                      </strong>{" "}
+                      <strong>Customer:</strong>{" "}
                       {order.customer_name}
                     </p>
                   )}
 
                   {order.email && (
                     <p>
-                      <strong>
-                        Email:
-                      </strong>{" "}
+                      <strong>Email:</strong>{" "}
                       {order.email}
                     </p>
                   )}
 
                   {order.phone && (
                     <p>
-                      <strong>
-                        Phone:
-                      </strong>{" "}
+                      <strong>Phone:</strong>{" "}
                       {order.phone}
                     </p>
                   )}
 
                   {order.address && (
                     <p>
-                      <strong>
-                        Address:
-                      </strong>{" "}
+                      <strong>Address:</strong>{" "}
                       {order.address}
+
                       {order.city
                         ? `, ${order.city}`
                         : ""}
+
                       {order.state
                         ? `, ${order.state}`
                         : ""}
+
                       {order.pincode
                         ? ` - ${order.pincode}`
                         : ""}
@@ -307,66 +349,79 @@ function Orders() {
 
                 </div>
 
-                {/* Products */}
+                {/* ==================================
+                    PRODUCTS
+                ================================== */}
                 <div className="order-items">
 
-                  <h3>
-                    Products
-                  </h3>
+                  <h3>Products</h3>
 
                   {orderItems.length > 0 ? (
+
                     orderItems.map(
-                      (item, index) => (
-                        <div
-                          key={
-                            item.id ||
-                            `${orderId}-${index}`
-                          }
-                          className="order-item"
-                        >
+                      (item, index) => {
 
-                          <div>
-                            <p className="item-name">
-                              {item.product_name ||
-                                item.name ||
-                                `Product #${item.product_id}`}
+                        const itemName =
+                          item.product_name ||
+                          item.name ||
+                          `Product #${
+                            item.product_id || ""
+                          }`;
+
+                        const quantity =
+                          Number(item.quantity || 0);
+
+                        const price =
+                          Number(item.price || 0);
+
+                        const itemTotal =
+                          price * quantity;
+
+                        return (
+                          <div
+                            key={
+                              item.id ||
+                              `${orderId}-${index}`
+                            }
+                            className="order-item"
+                          >
+
+                            <div>
+                              <p className="item-name">
+                                {itemName}
+                              </p>
+
+                              <p className="item-quantity">
+                                Quantity: {quantity}
+                              </p>
+                            </div>
+
+                            <p className="item-price">
+                              ₹{" "}
+                              {itemTotal.toFixed(2)}
                             </p>
 
-                            <p className="item-quantity">
-                              Quantity:{" "}
-                              {item.quantity}
-                            </p>
                           </div>
-
-                          <p className="item-price">
-                            ₹{" "}
-                            {(
-                              Number(
-                                item.price || 0
-                              ) *
-                              Number(
-                                item.quantity || 0
-                              )
-                            ).toFixed(2)}
-                          </p>
-
-                        </div>
-                      )
+                        );
+                      }
                     )
+
                   ) : (
+
                     <p className="no-items">
                       Order item details unavailable.
                     </p>
+
                   )}
 
                 </div>
 
-                {/* Total */}
+                {/* ==================================
+                    TOTAL
+                ================================== */}
                 <div className="order-total">
 
-                  <span>
-                    Total
-                  </span>
+                  <span>Total</span>
 
                   <strong>
                     ₹ {total.toFixed(2)}
@@ -379,6 +434,7 @@ function Orders() {
           })}
 
         </div>
+
       </div>
     </section>
   );
