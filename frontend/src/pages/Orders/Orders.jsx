@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Orders.css";
+import API_URL from "../../config/api";
 
 const ORDER_STATUSES = [
   "Pending",
@@ -32,7 +33,7 @@ function Orders() {
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/orders?t=${Date.now()}`,
+        `${API_URL}/orders?t=${Date.now()}`,
         {
           method: "GET",
           headers: {

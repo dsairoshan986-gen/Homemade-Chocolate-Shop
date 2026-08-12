@@ -2,16 +2,24 @@ const express = require("express");
 
 const router = express.Router();
 
+// =====================================================
+// CONTROLLERS
+// =====================================================
+
 const {
   getAllOrders,
   updateOrderStatus,
 } = require("../controllers/orderController");
 
+// =====================================================
+// MIDDLEWARE
+// =====================================================
+
 const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
 
 // =====================================================
-// GET ALL ORDERS - ADMIN
+// GET ALL ORDERS - ADMIN ONLY
 // GET /api/admin/orders
 // =====================================================
 
@@ -23,7 +31,7 @@ router.get(
 );
 
 // =====================================================
-// UPDATE ORDER STATUS - ADMIN
+// UPDATE ORDER STATUS - ADMIN ONLY
 // PUT /api/admin/orders/:id/status
 // =====================================================
 
@@ -33,5 +41,9 @@ router.put(
   adminMiddleware,
   updateOrderStatus
 );
+
+// =====================================================
+// EXPORT ROUTER
+// =====================================================
 
 module.exports = router;

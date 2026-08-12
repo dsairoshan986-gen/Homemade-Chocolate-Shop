@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
+import API_URL from "../../config/api";
 
 function Checkout() {
   const {
@@ -172,7 +173,7 @@ function Checkout() {
       // -------------------------------------------------------
 
       const response = await fetch(
-        "http://localhost:5000/api/orders",
+        `${API_URL}/orders`,
         {
           method: "POST",
 

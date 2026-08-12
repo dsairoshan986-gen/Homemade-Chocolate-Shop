@@ -1,21 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import API_URL from "../../config/api";
 import "./AdminDashboard.css";
 
 function AdminDashboard() {
   const navigate = useNavigate();
 
-  // =====================================================
-  // STATE
-  // =====================================================
-
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // =====================================================
-  // FETCH ALL ORDERS
-  // =====================================================
 
   const fetchOrders = async () => {
     try {
@@ -24,115 +17,67 @@ function AdminDashboard() {
 
       const token = localStorage.getItem("token");
 
-      // -------------------------------------------------
-      // CHECK LOGIN
-      // -------------------------------------------------
-
       if (!token) {
         navigate("/login");
         return;
       }
 
-      // -------------------------------------------------
-      // GET ADMIN ORDERS
-      // -------------------------------------------------
-
       const response = await fetch(
-        `http://localhost:5000/api/admin/orders?t=${Date.now()}`,
+        `${API_URL}/admin/orders?t=${Date.now()}`,
         {
           method: "GET",
-
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
             "Cache-Control": "no-cache",
           },
-
           cache: "no-store",
         }
       );
 
       const result = await response.json();
 
-      console.log(
-        "ADMIN DASHBOARD API RESPONSE:",
-        result
-      );
+      console.log("ADMIN DASHBOARD API RESPONSE:", result);
 
-      // -------------------------------------------------
-      // AUTH ERROR
-      // -------------------------------------------------
-
-      if (
-        response.status === 401 ||
-        response.status === 403
-      ) {
+      if (response.status === 401 || response.status === 403) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
 
         navigate("/login");
-
         return;
       }
 
-      // -------------------------------------------------
-      // API ERROR
-      // -------------------------------------------------
-
       if (!response.ok) {
         throw new Error(
-          result?.message ||
-            "Failed to fetch admin orders"
+          result.message || "Failed to fetch admin orders"
         );
       }
-
-      // -------------------------------------------------
-      // EXTRACT ORDERS
-      // -------------------------------------------------
 
       let ordersData = [];
 
       if (Array.isArray(result)) {
         ordersData = result;
-      } else if (
-        Array.isArray(result?.data)
-      ) {
+      } else if (Array.isArray(result.data)) {
         ordersData = result.data;
-      } else if (
-        Array.isArray(result?.orders)
-      ) {
+      } else if (Array.isArray(result.orders)) {
         ordersData = result.orders;
       }
 
-      console.log(
-        "ADMIN DASHBOARD ORDERS:",
-        ordersData
-      );
-
       setOrders(ordersData);
     } catch (err) {
-      console.error(
-        "Admin Dashboard Error:",
-        err
-      );
+      console.error("Admin Dashboard Error:", err);
 
       setError(
-        err?.message ||
-          "Failed to load dashboard"
+        err.message || "Failed to load dashboard"
       );
     } finally {
       setLoading(false);
     }
   };
 
-  // =====================================================
-  // LOAD DASHBOARD
-  // =====================================================
-
   useEffect(() => {
     fetchOrders();
 
-    // Refresh every 10 seconds
     const interval = setInterval(() => {
       fetchOrders();
     }, 10000);
@@ -142,52 +87,34 @@ function AdminDashboard() {
     };
   }, []);
 
-  // =====================================================
-  // STATISTICS
-  // =====================================================
-
   const totalOrders = orders.length;
 
   const pendingOrders = orders.filter(
-    (order) =>
-      order.status === "Pending"
+    (order) => order.status === "Pending"
   ).length;
 
   const confirmedOrders = orders.filter(
-    (order) =>
-      order.status === "Confirmed"
+    (order) => order.status === "Confirmed"
   ).length;
 
   const processingOrders = orders.filter(
-    (order) =>
-      order.status === "Processing"
+    (order) => order.status === "Processing"
   ).length;
 
   const shippedOrders = orders.filter(
-    (order) =>
-      order.status === "Shipped"
+    (order) => order.status === "Shipped"
   ).length;
 
   const deliveredOrders = orders.filter(
-    (order) =>
-      order.status === "Delivered"
+    (order) => order.status === "Delivered"
   ).length;
 
   const cancelledOrders = orders.filter(
-    (order) =>
-      order.status === "Cancelled"
+    (order) => order.status === "Cancelled"
   ).length;
 
-  // =====================================================
-  // TOTAL REVENUE
-  // Cancelled orders are excluded
-  // =====================================================
-
   const totalRevenue = orders
-    .filter(
-      (order) =>
-        order.status !== "Cancelled"
-    )
+    .filter((order) => order.status !== "Cancelled")
     .reduce(
       (total, order) =>
         total +
@@ -199,69 +126,42 @@ function AdminDashboard() {
       0
     );
 
-  // =====================================================
-  // LOADING
-  // =====================================================
-
   if (loading) {
     return (
       <section className="admin-dashboard-page">
         <div className="admin-dashboard-container">
-
           <div className="dashboard-loading">
+            <div className="dashboard-spinner"></div>
 
-            <div className="dashboard-spinner">
-            </div>
-
-            <p>
-              Loading admin dashboard...
-            </p>
-
+            <p>Loading admin dashboard...</p>
           </div>
-
         </div>
       </section>
     );
   }
 
-  // =====================================================
-  // ERROR
-  // =====================================================
-
   if (error) {
     return (
       <section className="admin-dashboard-page">
         <div className="admin-dashboard-container">
-
           <div className="dashboard-header">
-
             <div>
-
               <p className="dashboard-label">
                 ADMIN PANEL
               </p>
 
-              <h1>
-                Admin Dashboard
-              </h1>
-
+              <h1>Admin Dashboard</h1>
             </div>
-
           </div>
 
           <div className="dashboard-error">
-
             <div className="dashboard-error-icon">
               ⚠️
             </div>
 
-            <h2>
-              Unable to load dashboard
-            </h2>
+            <h2>Unable to load dashboard</h2>
 
-            <p>
-              {error}
-            </p>
+            <p>{error}</p>
 
             <button
               type="button"
@@ -270,44 +170,28 @@ function AdminDashboard() {
             >
               Try Again
             </button>
-
           </div>
-
         </div>
       </section>
     );
   }
 
-  // =====================================================
-  // DASHBOARD
-  // =====================================================
-
   return (
     <section className="admin-dashboard-page">
-
       <div className="admin-dashboard-container">
 
-        {/* =================================================
-            HEADER
-        ================================================= */}
-
         <div className="dashboard-header">
-
           <div>
-
             <p className="dashboard-label">
               ADMIN PANEL
             </p>
 
-            <h1>
-              Admin Dashboard
-            </h1>
+            <h1>Admin Dashboard</h1>
 
             <p className="dashboard-subtitle">
               Manage your homemade chocolate
               orders and track your business.
             </p>
-
           </div>
 
           <button
@@ -317,28 +201,15 @@ function AdminDashboard() {
           >
             ↻ Refresh
           </button>
-
         </div>
-
-        {/* =================================================
-            MAIN STATISTICS
-        ================================================= */}
 
         <div className="dashboard-main-stats">
 
-          {/* TOTAL REVENUE */}
-
           <div className="dashboard-stat-card revenue-card">
-
-            <div className="stat-icon">
-              ₹
-            </div>
+            <div className="stat-icon">₹</div>
 
             <div>
-
-              <p>
-                Total Revenue
-              </p>
+              <p>Total Revenue</p>
 
               <h2>
                 ₹{" "}
@@ -350,301 +221,186 @@ function AdminDashboard() {
                   }
                 )}
               </h2>
-
             </div>
-
           </div>
 
-          {/* TOTAL ORDERS */}
-
           <div className="dashboard-stat-card orders-card">
-
-            <div className="stat-icon">
-              📦
-            </div>
+            <div className="stat-icon">📦</div>
 
             <div>
+              <p>Total Orders</p>
 
-              <p>
-                Total Orders
-              </p>
-
-              <h2>
-                {totalOrders}
-              </h2>
-
+              <h2>{totalOrders}</h2>
             </div>
-
           </div>
 
         </div>
 
-        {/* =================================================
-            ORDER STATUS
-        ================================================= */}
-
         <div className="dashboard-section">
 
           <div className="dashboard-section-header">
-
             <div>
-
               <p className="section-label">
                 ORDER OVERVIEW
               </p>
 
-              <h2>
-                Order Status
-              </h2>
-
+              <h2>Order Status</h2>
             </div>
-
           </div>
 
           <div className="dashboard-status-grid">
 
-            {/* PENDING */}
-
             <div className="status-card pending-card">
-
               <div className="status-card-icon">
                 ⏳
               </div>
 
               <div>
-
-                <p>
-                  Pending
-                </p>
-
-                <strong>
-                  {pendingOrders}
-                </strong>
-
+                <p>Pending</p>
+                <strong>{pendingOrders}</strong>
               </div>
-
             </div>
 
-            {/* CONFIRMED */}
-
             <div className="status-card confirmed-card">
-
               <div className="status-card-icon">
                 ✓
               </div>
 
               <div>
-
-                <p>
-                  Confirmed
-                </p>
-
-                <strong>
-                  {confirmedOrders}
-                </strong>
-
+                <p>Confirmed</p>
+                <strong>{confirmedOrders}</strong>
               </div>
-
             </div>
 
-            {/* PROCESSING */}
-
             <div className="status-card processing-card">
-
               <div className="status-card-icon">
                 ⚙
               </div>
 
               <div>
-
-                <p>
-                  Processing
-                </p>
-
-                <strong>
-                  {processingOrders}
-                </strong>
-
+                <p>Processing</p>
+                <strong>{processingOrders}</strong>
               </div>
-
             </div>
 
-            {/* SHIPPED */}
-
             <div className="status-card shipped-card">
-
               <div className="status-card-icon">
                 🚚
               </div>
 
               <div>
-
-                <p>
-                  Shipped
-                </p>
-
-                <strong>
-                  {shippedOrders}
-                </strong>
-
+                <p>Shipped</p>
+                <strong>{shippedOrders}</strong>
               </div>
-
             </div>
 
-            {/* DELIVERED */}
-
             <div className="status-card delivered-card">
-
               <div className="status-card-icon">
                 ✓
               </div>
 
               <div>
-
-                <p>
-                  Delivered
-                </p>
-
-                <strong>
-                  {deliveredOrders}
-                </strong>
-
+                <p>Delivered</p>
+                <strong>{deliveredOrders}</strong>
               </div>
-
             </div>
 
-            {/* CANCELLED */}
-
             <div className="status-card cancelled-card">
-
               <div className="status-card-icon">
                 ✕
               </div>
 
               <div>
-
-                <p>
-                  Cancelled
-                </p>
-
-                <strong>
-                  {cancelledOrders}
-                </strong>
-
+                <p>Cancelled</p>
+                <strong>{cancelledOrders}</strong>
               </div>
-
             </div>
 
           </div>
-
         </div>
-
-        {/* =================================================
-            QUICK ACTIONS
-        ================================================= */}
 
         <div className="dashboard-section">
 
           <div className="dashboard-section-header">
-
             <div>
-
               <p className="section-label">
                 QUICK ACTIONS
               </p>
 
-              <h2>
-                Manage Store
-              </h2>
-
+              <h2>Manage Store</h2>
             </div>
-
           </div>
 
           <div className="quick-actions">
-
-            {/* MANAGE ORDERS */}
 
             <Link
               to="/admin/orders"
               className="quick-action"
             >
-
-              <span>
-                📦
-              </span>
+              <span>📦</span>
 
               <div>
-
-                <strong>
-                  Manage Orders
-                </strong>
+                <strong>Manage Orders</strong>
 
                 <p>
                   View and update customer
                   orders
                 </p>
-
               </div>
 
-              <b>
-                →
-              </b>
-
+              <b>→</b>
             </Link>
-
-            {/* MANAGE PRODUCTS */}
 
             <Link
               to="/admin/products"
               className="quick-action"
             >
-
-              <span>
-                🍫
-              </span>
+              <span>🍫</span>
 
               <div>
-
-                <strong>
-                  Manage Products
-                </strong>
+                <strong>Manage Products</strong>
 
                 <p>
-                  Add, edit and manage
+                  Add, edit and remove
                   chocolate products
                 </p>
-
               </div>
 
-              <b>
-                →
-              </b>
+              <b>→</b>
+            </Link>
 
+            <Link
+              to="/products"
+              className="quick-action"
+            >
+              <span>🛍️</span>
+
+              <div>
+                <strong>View Store</strong>
+
+                <p>
+                  View your chocolate
+                  products
+                </p>
+              </div>
+
+              <b>→</b>
             </Link>
 
           </div>
 
         </div>
 
-        {/* =================================================
-            RECENT ORDERS
-        ================================================= */}
-
         <div className="dashboard-section">
 
           <div className="dashboard-section-header">
 
             <div>
-
               <p className="section-label">
                 RECENT ACTIVITY
               </p>
 
-              <h2>
-                Recent Orders
-              </h2>
-
+              <h2>Recent Orders</h2>
             </div>
 
             <Link
@@ -656,19 +412,13 @@ function AdminDashboard() {
 
           </div>
 
-          {/* NO ORDERS */}
-
           {orders.length === 0 ? (
 
             <div className="no-dashboard-orders">
 
-              <div>
-                📦
-              </div>
+              <div>📦</div>
 
-              <p>
-                No orders yet.
-              </p>
+              <p>No orders yet.</p>
 
             </div>
 
@@ -684,7 +434,7 @@ function AdminDashboard() {
                     order.id ||
                     order.order_id;
 
-                  const customerName =
+                  const orderCustomer =
                     order.customer_name ||
                     order.email ||
                     "Customer";
@@ -700,23 +450,11 @@ function AdminDashboard() {
                     order.status ||
                     "Pending";
 
-                  const statusClass =
-                    String(
-                      orderStatus
-                    )
-                      .toLowerCase()
-                      .replace(
-                        /\s+/g,
-                        "-"
-                      );
-
                   return (
                     <div
                       key={orderId}
                       className="recent-order"
                     >
-
-                      {/* ORDER INFO */}
 
                       <div className="recent-order-info">
 
@@ -725,26 +463,27 @@ function AdminDashboard() {
                         </strong>
 
                         <span>
-                          {customerName}
+                          {orderCustomer}
                         </span>
 
                       </div>
 
-                      {/* TOTAL */}
-
                       <div className="recent-order-total">
 
                         ₹{" "}
-                        {orderTotal.toFixed(
-                          2
-                        )}
+                        {orderTotal.toFixed(2)}
 
                       </div>
 
-                      {/* STATUS */}
-
                       <div
-                        className={`recent-order-status status-${statusClass}`}
+                        className={`recent-order-status status-${String(
+                          orderStatus
+                        )
+                          .toLowerCase()
+                          .replace(
+                            /\s+/g,
+                            "-"
+                          )}`}
                       >
                         {orderStatus}
                       </div>
@@ -760,7 +499,6 @@ function AdminDashboard() {
         </div>
 
       </div>
-
     </section>
   );
 }

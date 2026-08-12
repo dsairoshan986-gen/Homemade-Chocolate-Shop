@@ -6,6 +6,7 @@ import darkTruffle from "../../assets/images/products/dark-truffle.jpg";
 import milkChocolate from "../../assets/images/products/milk-chocolate.jpg";
 import whiteChocolate from "../../assets/images/products/white-chocolate.jpg";
 import ferrero from "../../assets/images/products/ferrero.jpg";
+import API_URL from "../../config/api";
 
 const imageMap = {
   "Dark Chocolate Truffles": darkTruffle,
@@ -27,7 +28,7 @@ function ProductDetails() {
     const fetchProduct = async () => {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/products/${id}`
+          `${API_URL}/products/${id}`
         );
 
         const result = await response.json();

@@ -7,7 +7,7 @@ import milkChocolate from "../../assets/images/products/milk-chocolate.jpg";
 import whiteChocolate from "../../assets/images/products/white-chocolate.jpg";
 import ferrero from "../../assets/images/products/ferrero.jpg";
 
-const API_URL = "http://localhost:5000/api";
+import API_URL from "../../config/api";
 
 function FeaturedProducts() {
   const [products, setProducts] = useState([]);

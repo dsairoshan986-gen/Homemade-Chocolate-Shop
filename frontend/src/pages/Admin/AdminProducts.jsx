@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./AdminProducts.css";
 
-const API_URL = "http://localhost:5000/api";
+import API_URL from "../../config/api";
 
 function AdminProducts() {
   const navigate = useNavigate();
