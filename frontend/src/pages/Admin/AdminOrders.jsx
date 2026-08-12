@@ -24,6 +24,25 @@ function AdminOrders() {
 
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  // Order ID currently being updated
+  const [updatingOrderId, setUpdatingOrderId] = useState(null);
+
+  // Success/error message for status update
+  const [statusMessage, setStatusMessage] = useState("");
+
+  // =====================================================
+  // ALLOWED ORDER STATUSES
+  // =====================================================
+
+  const allowedStatuses = [
+    "Pending",
+    "Confirmed",
+    "Processing",
+    "Shipped",
+    "Delivered",
+    "Cancelled",
+  ];
+
   // =====================================================
   // CHECK ADMIN
   // =====================================================
@@ -73,6 +92,7 @@ function AdminOrders() {
       }
 
       setError("");
+      setStatusMessage("");
 
       const token =
         localStorage.getItem("token");
@@ -105,6 +125,10 @@ function AdminOrders() {
         result
       );
 
+      // =================================================
+      // UNAUTHORIZED
+      // =================================================
+
       if (response.status === 401) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -116,6 +140,10 @@ function AdminOrders() {
         return;
       }
 
+      // =================================================
+      // FORBIDDEN
+      // =================================================
+
       if (response.status === 403) {
         navigate("/", {
           replace: true,
@@ -124,12 +152,20 @@ function AdminOrders() {
         return;
       }
 
+      // =================================================
+      // ERROR
+      // =================================================
+
       if (!response.ok || !result.success) {
         throw new Error(
           result.message ||
             "Failed to fetch orders."
         );
       }
+
+      // =================================================
+      // SET ORDERS
+      // =================================================
 
       setOrders(
         Array.isArray(result.data)
@@ -154,6 +190,249 @@ function AdminOrders() {
   };
 
   // =====================================================
+  // UPDATE ORDER STATUS
+  // =====================================================
+
+  const updateOrderStatus = async (
+    orderId,
+    newStatus
+  ) => {
+    try {
+      // -------------------------------------------------
+      // VALIDATE
+      // -------------------------------------------------
+
+      if (!orderId) {
+        setStatusMessage(
+          "Invalid order ID."
+        );
+
+        return;
+      }
+
+      if (
+        !allowedStatuses.includes(
+          newStatus
+        )
+      ) {
+        setStatusMessage(
+          "Invalid order status."
+        );
+
+        return;
+      }
+
+      const token =
+        localStorage.getItem("token");
+
+      if (!token) {
+        navigate("/login", {
+          replace: true,
+        });
+
+        return;
+      }
+
+      // -------------------------------------------------
+      // CLEAR OLD MESSAGE
+      // -------------------------------------------------
+
+      setStatusMessage("");
+
+      // -------------------------------------------------
+      // SHOW LOADING
+      // -------------------------------------------------
+
+      setUpdatingOrderId(orderId);
+
+      console.log(
+        "================================="
+      );
+
+      console.log(
+        "ADMIN: Updating order status"
+      );
+
+      console.log(
+        "Order ID:",
+        orderId
+      );
+
+      console.log(
+        "New Status:",
+        newStatus
+      );
+
+      console.log(
+        "URL:",
+        `${API_URL}/admin/orders/${orderId}/status`
+      );
+
+      console.log(
+        "================================="
+      );
+
+      // -------------------------------------------------
+      // API REQUEST
+      // -------------------------------------------------
+
+      const response = await fetch(
+        `${API_URL}/admin/orders/${orderId}/status`,
+        {
+          method: "PUT",
+
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            status: newStatus,
+          }),
+        }
+      );
+
+      // -------------------------------------------------
+      // READ RESPONSE
+      // -------------------------------------------------
+
+      const result =
+        await response.json();
+
+      console.log(
+        "UPDATE STATUS RESPONSE:",
+        result
+      );
+
+      // -------------------------------------------------
+      // AUTH ERROR
+      // -------------------------------------------------
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        navigate("/login", {
+          replace: true,
+        });
+
+        return;
+      }
+
+      // -------------------------------------------------
+      // ADMIN ERROR
+      // -------------------------------------------------
+
+      if (response.status === 403) {
+        setStatusMessage(
+          "Access denied. Admin privileges required."
+        );
+
+        return;
+      }
+
+      // -------------------------------------------------
+      // API ERROR
+      // -------------------------------------------------
+
+      if (
+        !response.ok ||
+        !result.success
+      ) {
+        throw new Error(
+          result.message ||
+            "Failed to update order status."
+        );
+      }
+
+      // -------------------------------------------------
+      // UPDATED ORDER FROM DATABASE
+      // -------------------------------------------------
+
+      const updatedOrder =
+        result.data;
+
+      // -------------------------------------------------
+      // UPDATE ORDERS STATE
+      // -------------------------------------------------
+
+      setOrders((currentOrders) =>
+        currentOrders.map((order) => {
+          const currentId =
+            order.id ||
+            order.order_id;
+
+          if (
+            Number(currentId) ===
+            Number(orderId)
+          ) {
+            return {
+              ...order,
+              ...updatedOrder,
+              status: newStatus,
+            };
+          }
+
+          return order;
+        })
+      );
+
+      // -------------------------------------------------
+      // UPDATE SELECTED ORDER MODAL
+      // -------------------------------------------------
+
+      setSelectedOrder((currentOrder) => {
+        if (!currentOrder) {
+          return currentOrder;
+        }
+
+        const currentId =
+          currentOrder.id ||
+          currentOrder.order_id;
+
+        if (
+          Number(currentId) ===
+          Number(orderId)
+        ) {
+          return {
+            ...currentOrder,
+            ...updatedOrder,
+            status: newStatus,
+          };
+        }
+
+        return currentOrder;
+      });
+
+      // -------------------------------------------------
+      // SUCCESS MESSAGE
+      // -------------------------------------------------
+
+      setStatusMessage(
+        `Order #${orderId} status updated to ${newStatus}.`
+      );
+
+      console.log(
+        `ADMIN: Order ${orderId} updated successfully`
+      );
+
+    } catch (err) {
+      console.error(
+        "UPDATE ORDER STATUS ERROR:",
+        err
+      );
+
+      setStatusMessage(
+        err.message ||
+          "Failed to update order status."
+      );
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
+  // =====================================================
   // NORMALIZE STATUS
   // =====================================================
 
@@ -163,6 +442,40 @@ function AdminOrders() {
       order.order_status ||
       "pending"
     ).toLowerCase();
+  };
+
+  // =====================================================
+  // CONVERT STATUS TO DATABASE FORMAT
+  // =====================================================
+
+  const getDatabaseStatus = (status) => {
+    const normalized =
+      String(status || "")
+        .toLowerCase();
+
+    switch (normalized) {
+      case "pending":
+        return "Pending";
+
+      case "confirmed":
+        return "Confirmed";
+
+      case "processing":
+        return "Processing";
+
+      case "shipped":
+        return "Shipped";
+
+      case "delivered":
+        return "Delivered";
+
+      case "cancelled":
+      case "canceled":
+        return "Cancelled";
+
+      default:
+        return "Pending";
+    }
   };
 
   // =====================================================
@@ -207,7 +520,11 @@ function AdminOrders() {
     const parsedDate =
       new Date(date);
 
-    if (Number.isNaN(parsedDate.getTime())) {
+    if (
+      Number.isNaN(
+        parsedDate.getTime()
+      )
+    ) {
       return "—";
     }
 
@@ -233,7 +550,11 @@ function AdminOrders() {
     const parsedDate =
       new Date(date);
 
-    if (Number.isNaN(parsedDate.getTime())) {
+    if (
+      Number.isNaN(
+        parsedDate.getTime()
+      )
+    ) {
       return "—";
     }
 
@@ -311,11 +632,17 @@ function AdminOrders() {
   // =====================================================
 
   const getOrderItems = (order) => {
-    if (Array.isArray(order.items)) {
+    if (
+      Array.isArray(order.items)
+    ) {
       return order.items;
     }
 
-    if (Array.isArray(order.order_items)) {
+    if (
+      Array.isArray(
+        order.order_items
+      )
+    ) {
       return order.order_items;
     }
 
@@ -402,7 +729,8 @@ function AdminOrders() {
     const revenue =
       orders.reduce(
         (sum, order) =>
-          sum + getOrderTotal(order),
+          sum +
+          getOrderTotal(order),
         0
       );
 
@@ -422,9 +750,7 @@ function AdminOrders() {
   if (loading) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-[#fff8ef] via-[#f8eadb] to-[#efd2b3] flex items-center justify-center px-6">
-
         <div className="text-center">
-
           <div className="mx-auto w-14 h-14 rounded-full border-4 border-[#e8c9aa] border-t-[#8b3e12] animate-spin" />
 
           <h2 className="mt-6 text-2xl font-bold text-[#5a270b]">
@@ -434,9 +760,7 @@ function AdminOrders() {
           <p className="mt-2 text-[#795548]">
             Please wait while we fetch your orders.
           </p>
-
         </div>
-
       </main>
     );
   }
@@ -448,9 +772,7 @@ function AdminOrders() {
   if (error) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-[#fff8ef] via-[#f8eadb] to-[#efd2b3] flex items-center justify-center px-6">
-
         <div className="bg-white rounded-3xl shadow-xl border border-red-100 p-10 max-w-md w-full text-center">
-
           <div className="text-6xl">
             ⚠️
           </div>
@@ -471,9 +793,7 @@ function AdminOrders() {
           >
             Try Again
           </button>
-
         </div>
-
       </main>
     );
   }
@@ -490,13 +810,11 @@ function AdminOrders() {
       ================================================= */}
 
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-
         <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#d8a477]/20 blur-3xl" />
 
         <div className="absolute top-1/3 -right-40 w-[450px] h-[450px] rounded-full bg-[#b8794b]/15 blur-3xl" />
 
         <div className="absolute -bottom-40 left-1/3 w-96 h-96 rounded-full bg-[#e8b98f]/25 blur-3xl" />
-
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto">
@@ -508,9 +826,7 @@ function AdminOrders() {
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
 
           <div>
-
             <div className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm px-5 py-2 rounded-full shadow-sm border border-[#ead5c0]">
-
               <span>
                 📦
               </span>
@@ -518,7 +834,6 @@ function AdminOrders() {
               <span className="font-semibold text-[#7a3414]">
                 Order Management
               </span>
-
             </div>
 
             <h1 className="mt-5 text-4xl sm:text-5xl font-extrabold text-[#5a270b] tracking-tight">
@@ -528,7 +843,6 @@ function AdminOrders() {
             <p className="mt-3 text-[#795548] text-lg">
               View and manage customer orders from your Chocolate Shop.
             </p>
-
           </div>
 
           {/* REFRESH */}
@@ -540,7 +854,6 @@ function AdminOrders() {
             disabled={refreshing}
             className="self-start lg:self-auto inline-flex items-center gap-2 bg-white border border-[#dfc5ad] text-[#7a3414] px-6 py-3 rounded-xl font-bold shadow-sm hover:bg-[#fff8ef] hover:shadow-md transition disabled:opacity-60"
           >
-
             <span
               className={
                 refreshing
@@ -554,10 +867,26 @@ function AdminOrders() {
             {refreshing
               ? "Refreshing..."
               : "Refresh Orders"}
-
           </button>
-
         </div>
+
+        {/* =================================================
+            STATUS UPDATE MESSAGE
+        ================================================= */}
+
+        {statusMessage && (
+          <div
+            className={`mt-6 rounded-xl px-5 py-4 font-semibold border ${
+              statusMessage
+                .toLowerCase()
+                .includes("updated")
+                ? "bg-green-50 text-green-800 border-green-200"
+                : "bg-red-50 text-red-800 border-red-200"
+            }`}
+          >
+            {statusMessage}
+          </div>
+        )}
 
         {/* =================================================
             STATISTICS
@@ -568,7 +897,6 @@ function AdminOrders() {
           {/* TOTAL */}
 
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-[#ead5c0] shadow-md p-5">
-
             <div className="flex items-center justify-between">
 
               <div>
@@ -586,17 +914,14 @@ function AdminOrders() {
               </div>
 
             </div>
-
           </div>
 
           {/* PENDING */}
 
           <div className="bg-white/95 rounded-2xl border border-[#ead5c0] shadow-md p-5">
-
             <div className="flex items-center justify-between">
 
               <div>
-
                 <p className="text-sm text-gray-500">
                   Pending
                 </p>
@@ -604,7 +929,6 @@ function AdminOrders() {
                 <p className="mt-2 text-3xl font-extrabold text-amber-700">
                   {statistics.pendingOrders}
                 </p>
-
               </div>
 
               <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-2xl">
@@ -612,17 +936,14 @@ function AdminOrders() {
               </div>
 
             </div>
-
           </div>
 
           {/* PROCESSING */}
 
           <div className="bg-white/95 rounded-2xl border border-[#ead5c0] shadow-md p-5">
-
             <div className="flex items-center justify-between">
 
               <div>
-
                 <p className="text-sm text-gray-500">
                   Processing
                 </p>
@@ -630,7 +951,6 @@ function AdminOrders() {
                 <p className="mt-2 text-3xl font-extrabold text-purple-700">
                   {statistics.processingOrders}
                 </p>
-
               </div>
 
               <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-2xl">
@@ -638,17 +958,14 @@ function AdminOrders() {
               </div>
 
             </div>
-
           </div>
 
           {/* DELIVERED */}
 
           <div className="bg-white/95 rounded-2xl border border-[#ead5c0] shadow-md p-5">
-
             <div className="flex items-center justify-between">
 
               <div>
-
                 <p className="text-sm text-gray-500">
                   Delivered
                 </p>
@@ -656,7 +973,6 @@ function AdminOrders() {
                 <p className="mt-2 text-3xl font-extrabold text-green-700">
                   {statistics.deliveredOrders}
                 </p>
-
               </div>
 
               <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-2xl">
@@ -664,25 +980,24 @@ function AdminOrders() {
               </div>
 
             </div>
-
           </div>
 
           {/* REVENUE */}
 
           <div className="bg-gradient-to-br from-[#6b2e0b] to-[#a84d12] rounded-2xl shadow-lg p-5 text-white">
-
             <div className="flex items-center justify-between">
 
               <div>
-
                 <p className="text-sm text-white/80">
                   Revenue
                 </p>
 
                 <p className="mt-2 text-2xl font-extrabold">
-                  ₹{statistics.revenue.toFixed(2)}
+                  ₹
+                  {statistics.revenue.toFixed(
+                    2
+                  )}
                 </p>
-
               </div>
 
               <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center text-2xl">
@@ -690,7 +1005,6 @@ function AdminOrders() {
               </div>
 
             </div>
-
           </div>
 
         </div>
@@ -813,7 +1127,9 @@ function AdminOrders() {
 
             <div className="bg-white/95 rounded-3xl border border-[#ead5c0] shadow-xl overflow-hidden">
 
-              {/* DESKTOP TABLE */}
+              {/* =================================================
+                  DESKTOP TABLE
+              ================================================= */}
 
               <div className="hidden lg:block overflow-x-auto">
 
@@ -864,13 +1180,23 @@ function AdminOrders() {
                           getStatus(order);
 
                         const items =
-                          getOrderItems(order);
+                          getOrderItems(
+                            order
+                          );
+
+                        const orderId =
+                          getOrderId(order);
+
+                        const isUpdating =
+                          Number(
+                            updatingOrderId
+                          ) ===
+                          Number(orderId);
 
                         return (
+
                           <tr
-                            key={getOrderId(
-                              order
-                            )}
+                            key={orderId}
                             className="border-b border-[#f0dfce] hover:bg-[#fffaf5] transition"
                           >
 
@@ -879,9 +1205,8 @@ function AdminOrders() {
                             <td className="px-6 py-5">
 
                               <p className="font-bold text-[#6b2e0b]">
-                                #{getOrderId(
-                                  order
-                                )}
+                                #
+                                {orderId}
                               </p>
 
                               <p className="text-xs text-gray-500 mt-1">
@@ -912,22 +1237,29 @@ function AdminOrders() {
 
                             <td className="px-6 py-5">
 
-                              {items.length > 0 ? (
+                              {items.length >
+                              0 ? (
 
                                 <div>
 
                                   <p className="font-semibold text-gray-700">
+
                                     {items.length}{" "}
+
                                     {items.length ===
                                     1
                                       ? "item"
                                       : "items"}
+
                                   </p>
 
                                   <p className="text-sm text-gray-500 mt-1 max-w-[180px] truncate">
+
                                     {items
                                       .map(
-                                        (item) =>
+                                        (
+                                          item
+                                        ) =>
                                           item.name ||
                                           item.product_name ||
                                           "Product"
@@ -935,6 +1267,7 @@ function AdminOrders() {
                                       .join(
                                         ", "
                                       )}
+
                                   </p>
 
                                 </div>
@@ -954,10 +1287,14 @@ function AdminOrders() {
                             <td className="px-6 py-5">
 
                               <p className="font-extrabold text-[#b84d00]">
+
                                 ₹
                                 {getOrderTotal(
                                   order
-                                ).toFixed(2)}
+                                ).toFixed(
+                                  2
+                                )}
+
                               </p>
 
                             </td>
@@ -967,11 +1304,13 @@ function AdminOrders() {
                             <td className="px-6 py-5">
 
                               <p className="text-gray-700 font-medium">
+
                                 {formatDate(
                                   order.created_at ||
-                                  order.createdAt ||
-                                  order.date
+                                    order.createdAt ||
+                                    order.date
                                 )}
+
                               </p>
 
                             </td>
@@ -980,13 +1319,58 @@ function AdminOrders() {
 
                             <td className="px-6 py-5">
 
-                              <span
-                                className={`inline-flex px-3 py-1.5 rounded-full border text-xs font-bold capitalize ${getStatusClass(
+                              <select
+                                value={getDatabaseStatus(
                                   status
-                                )}`}
+                                )}
+                                disabled={
+                                  isUpdating
+                                }
+                                onChange={(
+                                  event
+                                ) =>
+                                  updateOrderStatus(
+                                    orderId,
+                                    event
+                                      .target
+                                      .value
+                                  )
+                                }
+                                className={`min-w-[140px] px-3 py-2 rounded-xl border text-sm font-bold outline-none cursor-pointer transition ${getStatusClass(
+                                  status
+                                )} ${
+                                  isUpdating
+                                    ? "opacity-60 cursor-wait"
+                                    : ""
+                                }`}
                               >
-                                {status}
-                              </span>
+
+                                {allowedStatuses.map(
+                                  (
+                                    availableStatus
+                                  ) => (
+
+                                    <option
+                                      key={
+                                        availableStatus
+                                      }
+                                      value={
+                                        availableStatus
+                                      }
+                                    >
+                                      {availableStatus}
+                                    </option>
+
+                                  )
+                                )}
+
+                              </select>
+
+                              {isUpdating && (
+                                <p className="text-xs text-[#8b3e12] mt-1">
+                                  Updating...
+                                </p>
+                              )}
 
                             </td>
 
@@ -1008,6 +1392,7 @@ function AdminOrders() {
                             </td>
 
                           </tr>
+
                         );
                       }
                     )}
@@ -1018,7 +1403,9 @@ function AdminOrders() {
 
               </div>
 
-              {/* MOBILE CARDS */}
+              {/* =================================================
+                  MOBILE CARDS
+              ================================================= */}
 
               <div className="lg:hidden divide-y divide-[#f0dfce]">
 
@@ -1031,11 +1418,19 @@ function AdminOrders() {
                     const items =
                       getOrderItems(order);
 
+                    const orderId =
+                      getOrderId(order);
+
+                    const isUpdating =
+                      Number(
+                        updatingOrderId
+                      ) ===
+                      Number(orderId);
+
                     return (
+
                       <div
-                        key={getOrderId(
-                          order
-                        )}
+                        key={orderId}
                         className="p-5"
                       >
 
@@ -1045,16 +1440,14 @@ function AdminOrders() {
 
                             <p className="font-extrabold text-[#6b2e0b]">
                               #
-                              {getOrderId(
-                                order
-                              )}
+                              {orderId}
                             </p>
 
                             <p className="text-sm text-gray-500 mt-1">
                               {formatDate(
                                 order.created_at ||
-                                order.createdAt ||
-                                order.date
+                                  order.createdAt ||
+                                  order.date
                               )}
                             </p>
 
@@ -1089,6 +1482,7 @@ function AdminOrders() {
                         <div className="mt-5 grid grid-cols-2 gap-4">
 
                           <div>
+
                             <p className="text-xs text-gray-500">
                               Items
                             </p>
@@ -1096,20 +1490,90 @@ function AdminOrders() {
                             <p className="font-semibold mt-1">
                               {items.length}
                             </p>
+
                           </div>
 
                           <div>
+
                             <p className="text-xs text-gray-500">
                               Total
                             </p>
 
                             <p className="font-extrabold text-[#b84d00] mt-1">
+
                               ₹
                               {getOrderTotal(
                                 order
-                              ).toFixed(2)}
+                              ).toFixed(
+                                2
+                              )}
+
                             </p>
+
                           </div>
+
+                        </div>
+
+                        {/* MOBILE STATUS */}
+
+                        <div className="mt-5">
+
+                          <label className="block text-sm font-bold text-[#6b2e0b] mb-2">
+                            Update Status
+                          </label>
+
+                          <select
+                            value={getDatabaseStatus(
+                              status
+                            )}
+                            disabled={
+                              isUpdating
+                            }
+                            onChange={(
+                              event
+                            ) =>
+                              updateOrderStatus(
+                                orderId,
+                                event
+                                  .target
+                                  .value
+                              )
+                            }
+                            className={`w-full px-4 py-3 rounded-xl border text-sm font-bold outline-none ${getStatusClass(
+                              status
+                            )} ${
+                              isUpdating
+                                ? "opacity-60 cursor-wait"
+                                : ""
+                            }`}
+                          >
+
+                            {allowedStatuses.map(
+                              (
+                                availableStatus
+                              ) => (
+
+                                <option
+                                  key={
+                                    availableStatus
+                                  }
+                                  value={
+                                    availableStatus
+                                  }
+                                >
+                                  {availableStatus}
+                                </option>
+
+                              )
+                            )}
+
+                          </select>
+
+                          {isUpdating && (
+                            <p className="text-xs text-[#8b3e12] mt-2">
+                              Updating status...
+                            </p>
+                          )}
 
                         </div>
 
@@ -1125,6 +1589,7 @@ function AdminOrders() {
                         </button>
 
                       </div>
+
                     );
                   }
                 )}
@@ -1170,7 +1635,8 @@ function AdminOrders() {
                 </p>
 
                 <h2 className="text-2xl font-extrabold">
-                  #{getOrderId(
+                  #
+                  {getOrderId(
                     selectedOrder
                   )}
                 </h2>
@@ -1203,30 +1669,41 @@ function AdminOrders() {
                 <div className="mt-4 space-y-2 text-gray-700">
 
                   <p>
+
                     <span className="font-semibold">
                       Name:
                     </span>{" "}
+
                     {getCustomerName(
                       selectedOrder
                     )}
+
                   </p>
 
                   <p>
+
                     <span className="font-semibold">
                       Email:
                     </span>{" "}
+
                     {getCustomerEmail(
                       selectedOrder
                     )}
+
                   </p>
 
                   {selectedOrder.phone && (
+
                     <p>
+
                       <span className="font-semibold">
                         Phone:
                       </span>{" "}
+
                       {selectedOrder.phone}
+
                     </p>
+
                   )}
 
                 </div>
@@ -1244,11 +1721,13 @@ function AdminOrders() {
                   </p>
 
                   <p className="mt-2 font-bold text-[#6b2e0b]">
+
                     {formatDateTime(
                       selectedOrder.created_at ||
-                      selectedOrder.createdAt ||
-                      selectedOrder.date
+                        selectedOrder.createdAt ||
+                        selectedOrder.date
                     )}
+
                   </p>
 
                 </div>
@@ -1260,11 +1739,98 @@ function AdminOrders() {
                   </p>
 
                   <p className="mt-2 text-2xl font-extrabold text-[#b84d00]">
+
                     ₹
                     {getOrderTotal(
                       selectedOrder
                     ).toFixed(2)}
+
                   </p>
+
+                </div>
+
+              </div>
+
+              {/* =================================================
+                  CURRENT STATUS
+              ================================================= */}
+
+              <div className="mt-6 rounded-2xl border border-[#ead5c0] p-5">
+
+                <h3 className="text-lg font-bold text-[#6b2e0b]">
+                  Order Status
+                </h3>
+
+                <div className="mt-4">
+
+                  <select
+                    value={getDatabaseStatus(
+                      getStatus(
+                        selectedOrder
+                      )
+                    )}
+                    disabled={
+                      Number(
+                        updatingOrderId
+                      ) ===
+                      Number(
+                        getOrderId(
+                          selectedOrder
+                        )
+                      )
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      updateOrderStatus(
+                        getOrderId(
+                          selectedOrder
+                        ),
+                        event.target.value
+                      )
+                    }
+                    className={`w-full px-4 py-3 rounded-xl border text-sm font-bold outline-none ${getStatusClass(
+                      getStatus(
+                        selectedOrder
+                      )
+                    )}`}
+                  >
+
+                    {allowedStatuses.map(
+                      (
+                        availableStatus
+                      ) => (
+
+                        <option
+                          key={
+                            availableStatus
+                          }
+                          value={
+                            availableStatus
+                          }
+                        >
+                          {availableStatus}
+                        </option>
+
+                      )
+                    )}
+
+                  </select>
+
+                  {Number(
+                    updatingOrderId
+                  ) ===
+                    Number(
+                      getOrderId(
+                        selectedOrder
+                      )
+                    ) && (
+
+                    <p className="text-sm text-[#8b3e12] mt-2">
+                      Updating status...
+                    </p>
+
+                  )}
 
                 </div>
 
@@ -1287,7 +1853,10 @@ function AdminOrders() {
                     getOrderItems(
                       selectedOrder
                     ).map(
-                      (item, index) => {
+                      (
+                        item,
+                        index
+                      ) => {
 
                         const name =
                           item.name ||
@@ -1302,11 +1871,12 @@ function AdminOrders() {
                         const price =
                           Number(
                             item.price ||
-                            item.unit_price ||
-                            0
+                              item.unit_price ||
+                              0
                           );
 
                         return (
+
                           <div
                             key={
                               item.id ||
@@ -1329,14 +1899,19 @@ function AdminOrders() {
                             </div>
 
                             <p className="font-bold text-[#b84d00]">
+
                               ₹
                               {(
                                 price *
                                 quantity
-                              ).toFixed(2)}
+                              ).toFixed(
+                                2
+                              )}
+
                             </p>
 
                           </div>
+
                         );
                       }
                     )
@@ -1365,8 +1940,10 @@ function AdminOrders() {
                   </h3>
 
                   <p className="mt-3 text-gray-700 leading-relaxed">
+
                     {selectedOrder.address ||
                       selectedOrder.shipping_address}
+
                   </p>
 
                 </div>

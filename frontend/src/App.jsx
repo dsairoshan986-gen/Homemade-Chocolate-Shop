@@ -21,27 +21,27 @@ import Orders from "./pages/Orders/Orders";
 import OrderSuccess from "./pages/OrderSuccess/OrderSuccess";
 
 // =====================================================
-// AUTH PAGES
+// AUTH
 // =====================================================
 
 import Login from "./pages/Login/Login";
 import Register from "./pages/Register/Register";
 
 // =====================================================
-// CUSTOMER ACCOUNT PAGES
+// ACCOUNT
 // =====================================================
 
 import Profile from "./pages/Profile/Profile";
 import Wishlist from "./pages/Wishlist/Wishlist";
 
 // =====================================================
-// CONTACT SUPPORT
+// CONTACT
 // =====================================================
 
 import ContactSupport from "./pages/ContactSupport/ContactSupport";
 
 // =====================================================
-// ADMIN PAGES
+// ADMIN
 // =====================================================
 
 import AdminDashboard from "./pages/Admin/AdminDashboard";
@@ -49,71 +49,103 @@ import AdminOrders from "./pages/Admin/AdminOrders";
 import AdminProducts from "./pages/Admin/AdminProducts";
 
 // =====================================================
-// 404 PAGE
+// 404
 // =====================================================
 
 import NotFound from "./pages/NotFound/NotFound";
 
+
 // =====================================================
-// PROTECTED CUSTOMER ROUTE
+// GET CURRENT USER
+// =====================================================
+
+function getCurrentUser() {
+  const userData = localStorage.getItem("user");
+
+  if (!userData) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(userData);
+  } catch (error) {
+    console.error("Invalid user data:", error);
+
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+
+    return null;
+  }
+}
+
+
+// =====================================================
+// CHECK ADMIN
+// =====================================================
+
+function isAdminUser(user) {
+  if (!user) {
+    return false;
+  }
+
+  const role = String(
+    user.role ||
+      user.accountType ||
+      user.userType ||
+      ""
+  ).toLowerCase();
+
+  return (
+    role === "admin" ||
+    role === "administrator"
+  );
+}
+
+
+// =====================================================
+// CUSTOMER PROTECTED ROUTE
 // =====================================================
 
 function ProtectedCustomerRoute({ children }) {
   const token = localStorage.getItem("token");
-  const userData = localStorage.getItem("user");
+  const user = getCurrentUser();
 
-  // ---------------------------------------------------
-  // User is not logged in
-  // ---------------------------------------------------
-
-  if (!token || !userData) {
+  // Not logged in
+  if (!token || !user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Admin should use admin pages
+  if (isAdminUser(user)) {
+    return <Navigate to="/admin/dashboard" replace />;
   }
 
   return children;
 }
 
+
 // =====================================================
-// PROTECTED ADMIN ROUTE
+// ADMIN PROTECTED ROUTE
 // =====================================================
 
 function ProtectedAdminRoute({ children }) {
   const token = localStorage.getItem("token");
-  const userData = localStorage.getItem("user");
+  const user = getCurrentUser();
 
-  // ---------------------------------------------------
-  // User is not logged in
-  // ---------------------------------------------------
-
-  if (!token || !userData) {
+  // Not logged in
+  if (!token || !user) {
     return <Navigate to="/login" replace />;
   }
 
-  // ---------------------------------------------------
-  // Check user information
-  // ---------------------------------------------------
-
-  try {
-    const user = JSON.parse(userData);
-
-    // -------------------------------------------------
-    // Only admin can access admin pages
-    // -------------------------------------------------
-
-    if (user.role !== "admin") {
-      return <Navigate to="/" replace />;
-    }
-
-    return children;
-  } catch (error) {
-    console.error("Invalid user data:", error);
-
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-
-    return <Navigate to="/login" replace />;
+  // Not admin
+  if (!isAdminUser(user)) {
+    return <Navigate to="/" replace />;
   }
+
+  return children;
 }
+
 
 // =====================================================
 // APP
@@ -122,15 +154,15 @@ function ProtectedAdminRoute({ children }) {
 function App() {
   return (
     <>
-
       {/* =================================================
-          NAVBAR
+          GLOBAL NAVBAR
       ================================================= */}
 
       <Navbar />
 
+
       {/* =================================================
-          ROUTES
+          APPLICATION ROUTES
       ================================================= */}
 
       <Routes>
@@ -144,6 +176,7 @@ function App() {
           element={<Home />}
         />
 
+
         {/* =================================================
             ABOUT
         ================================================= */}
@@ -152,6 +185,7 @@ function App() {
           path="/about"
           element={<About />}
         />
+
 
         {/* =================================================
             PRODUCTS
@@ -162,6 +196,7 @@ function App() {
           element={<Products />}
         />
 
+
         {/* =================================================
             PRODUCT DETAILS
         ================================================= */}
@@ -170,6 +205,7 @@ function App() {
           path="/products/:id"
           element={<ProductDetails />}
         />
+
 
         {/* =================================================
             LOGIN
@@ -180,6 +216,7 @@ function App() {
           element={<Login />}
         />
 
+
         {/* =================================================
             REGISTER
         ================================================= */}
@@ -188,6 +225,7 @@ function App() {
           path="/register"
           element={<Register />}
         />
+
 
         {/* =================================================
             CART
@@ -202,6 +240,7 @@ function App() {
           }
         />
 
+
         {/* =================================================
             CHECKOUT
         ================================================= */}
@@ -214,6 +253,7 @@ function App() {
             </ProtectedCustomerRoute>
           }
         />
+
 
         {/* =================================================
             CUSTOMER ORDERS
@@ -228,6 +268,7 @@ function App() {
           }
         />
 
+
         {/* =================================================
             ORDER SUCCESS
         ================================================= */}
@@ -241,6 +282,11 @@ function App() {
           }
         />
 
+
+        {/* =================================================
+            ORDER SUCCESS WITH ID
+        ================================================= */}
+
         <Route
           path="/order-success/:id"
           element={
@@ -249,6 +295,7 @@ function App() {
             </ProtectedCustomerRoute>
           }
         />
+
 
         {/* =================================================
             PROFILE
@@ -263,6 +310,7 @@ function App() {
           }
         />
 
+
         {/* =================================================
             WISHLIST
         ================================================= */}
@@ -276,14 +324,17 @@ function App() {
           }
         />
 
+
         {/* =================================================
-            CONTACT SUPPORT
+            CONTACT US
+            Available before and after login
         ================================================= */}
 
         <Route
           path="/contact-support"
           element={<ContactSupport />}
         />
+
 
         {/* =================================================
             ADMIN DASHBOARD
@@ -298,6 +349,7 @@ function App() {
           }
         />
 
+
         {/* =================================================
             ADMIN ORDERS
         ================================================= */}
@@ -310,6 +362,7 @@ function App() {
             </ProtectedAdminRoute>
           }
         />
+
 
         {/* =================================================
             ADMIN PRODUCTS
@@ -324,6 +377,7 @@ function App() {
           }
         />
 
+
         {/* =================================================
             404
         ================================================= */}
@@ -335,8 +389,9 @@ function App() {
 
       </Routes>
 
+
       {/* =================================================
-          FOOTER
+          GLOBAL FOOTER
       ================================================= */}
 
       <Footer />

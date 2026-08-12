@@ -1,123 +1,58 @@
-import { useEffect, useState } from "react";
-import {
-  Link,
-  NavLink,
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
-
-import "./Navbar.css";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
 
   // =====================================================
-  // AUTH STATE
+  // GET LOGIN INFORMATION
   // =====================================================
 
-  const [token, setToken] = useState(
-    localStorage.getItem("token")
-  );
+  const token = localStorage.getItem("token");
+  const userData = localStorage.getItem("user");
 
-  const [user, setUser] = useState(() => {
+  const isLoggedIn = Boolean(token && userData);
+
+  // =====================================================
+  // GET USER / ROLE
+  // =====================================================
+
+  let user = null;
+
+  if (userData) {
     try {
-      const savedUser = localStorage.getItem("user");
-
-      return savedUser
-        ? JSON.parse(savedUser)
-        : null;
+      user = JSON.parse(userData);
     } catch (error) {
-      console.error("Failed to read user:", error);
-      return null;
+      console.error("Invalid user data:", error);
     }
-  });
+  }
 
-  // =====================================================
-  // MOBILE MENU
-  // =====================================================
-
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  // =====================================================
-  // LOGIN / REGISTER PAGE
-  // =====================================================
-
-  const isAuthPage =
-    location.pathname === "/login" ||
-    location.pathname === "/register";
-
-  // =====================================================
-  // ADMIN CHECK
-  // =====================================================
+  const role = String(
+    user?.role ||
+      user?.accountType ||
+      user?.userType ||
+      localStorage.getItem("role") ||
+      ""
+  ).toLowerCase();
 
   const isAdmin =
-    Boolean(token) &&
-    Boolean(user) &&
-    user.role === "admin";
+    role === "admin" ||
+    role === "administrator";
+
+  const isCustomer =
+    isLoggedIn && !isAdmin;
 
   // =====================================================
-  // UPDATE AUTH STATE
+  // ACTIVE LINK
   // =====================================================
 
-  useEffect(() => {
-    const updateAuth = () => {
-      const currentToken =
-        localStorage.getItem("token");
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
 
-      setToken(currentToken);
-
-      try {
-        const savedUser =
-          localStorage.getItem("user");
-
-        setUser(
-          savedUser
-            ? JSON.parse(savedUser)
-            : null
-        );
-      } catch (error) {
-        console.error(
-          "Failed to read user:",
-          error
-        );
-
-        setUser(null);
-      }
-    };
-
-    updateAuth();
-
-    window.addEventListener(
-      "storage",
-      updateAuth
-    );
-
-    window.addEventListener(
-      "authChanged",
-      updateAuth
-    );
-
-    return () => {
-      window.removeEventListener(
-        "storage",
-        updateAuth
-      );
-
-      window.removeEventListener(
-        "authChanged",
-        updateAuth
-      );
-    };
-  }, [location.pathname]);
-
-  // =====================================================
-  // CLOSE MOBILE MENU WHEN ROUTE CHANGES
-  // =====================================================
-
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [location.pathname]);
+  const isProductsActive = () => {
+    return location.pathname.startsWith("/products");
+  };
 
   // =====================================================
   // LOGOUT
@@ -126,507 +61,314 @@ function Navbar() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-
-    setToken(null);
-    setUser(null);
-    setMenuOpen(false);
-
-    window.dispatchEvent(
-      new Event("authChanged")
-    );
+    localStorage.removeItem("role");
 
     navigate("/login", {
       replace: true,
     });
+
+    window.location.reload();
   };
 
   // =====================================================
-  // NAV LINK STYLE
+  // NAVBAR LINK STYLE
   // =====================================================
 
-  const navLinkClass = ({ isActive }) =>
-    `navbar-link ${
-      isActive
-        ? "navbar-link-active"
-        : ""
-    }`;
+  const linkClass = (active = false) => {
+    return `
+      font-semibold
+      transition
+      ${
+        active
+          ? "text-[#b84d00] border-b-2 border-[#b84d00] pb-2"
+          : "text-[#4a1f0b] hover:text-[#b84d00]"
+      }
+    `;
+  };
 
   // =====================================================
-  // USER NAME
-  // =====================================================
-
-  const displayName =
-    user?.name ||
-    user?.username ||
-    user?.firstName ||
-    user?.email?.split("@")[0] ||
-    "User";
-
-  // =====================================================
-  // RENDER
+  // NAVBAR
   // =====================================================
 
   return (
-    <header className="navbar">
+    <header className="sticky top-0 z-50 bg-white border-b border-[#ead8c6] shadow-sm">
 
-      <div className="navbar-container">
+      <nav className="max-w-7xl mx-auto px-6">
 
-        {/* =================================================
-            LOGO
-        ================================================= */}
-
-        <Link
-          to="/"
-          className="navbar-logo"
-          onClick={() =>
-            setMenuOpen(false)
-          }
-        >
-          <span className="navbar-logo-icon">
-            🍫
-          </span>
-
-          <span>
-            Chocolate Shop
-          </span>
-        </Link>
-
-        {/* =================================================
-            DESKTOP NAVIGATION
-        ================================================= */}
-
-        <nav className="navbar-desktop">
+        <div className="min-h-20 flex items-center justify-between">
 
           {/* =================================================
-              LOGIN / REGISTER
-              ONLY ABOUT + CONTACT US
+              LOGO
           ================================================= */}
 
-          {isAuthPage ? (
-            <>
-              <NavLink
-                to="/about"
-                className={navLinkClass}
-              >
-                About
-              </NavLink>
+          <Link
+            to="/"
+            className="flex items-center gap-3 flex-shrink-0"
+          >
+            <span className="text-3xl">
+              🍫
+            </span>
 
-              <NavLink
-                to="/contact"
-                className={navLinkClass}
-              >
-                Contact Us
-              </NavLink>
-            </>
+            <span className="text-2xl font-extrabold text-[#6b2e0b]">
+              Chocolate Shop
+            </span>
+          </Link>
 
-          ) : isAdmin ? (
+          {/* =================================================
+              NAVIGATION
+          ================================================= */}
 
-            /* =================================================
-                ADMIN NAVIGATION
-                NO CONTACT US
-            ================================================= */
-
-            <>
-              <NavLink
-                to="/admin/dashboard"
-                className={navLinkClass}
-              >
-                📊 Dashboard
-              </NavLink>
-
-              <NavLink
-                to="/admin/products"
-                className={navLinkClass}
-              >
-                🍫 Products
-              </NavLink>
-
-              <NavLink
-                to="/admin/orders"
-                className={navLinkClass}
-              >
-                📦 Orders
-              </NavLink>
-
-              <NavLink
-                to="/profile"
-                className={navLinkClass}
-              >
-                👤 Profile
-              </NavLink>
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="navbar-logout"
-              >
-                Logout
-              </button>
-            </>
-
-          ) : (
-
-            /* =================================================
-                CUSTOMER NAVIGATION
-            ================================================= */
-
-            <>
-              {/* HOME */}
-
-              <NavLink
-                to="/"
-                className={navLinkClass}
-              >
-                Home
-              </NavLink>
-
-              {/* ABOUT */}
-
-              <NavLink
-                to="/about"
-                className={navLinkClass}
-              >
-                About
-              </NavLink>
-
-              {/* CONTACT US */}
-
-              <NavLink
-                to="/contact"
-                className={navLinkClass}
-              >
-                Contact Us
-              </NavLink>
-
-              {/* PRODUCTS */}
-
-              <NavLink
-                to="/products"
-                className={navLinkClass}
-              >
-                Products
-              </NavLink>
-
-              {/* =================================================
-                  LOGGED-IN CUSTOMER
-              ================================================= */}
-
-              {token && user ? (
-                <>
-                  {/* CART */}
-
-                  <NavLink
-                    to="/cart"
-                    className={navLinkClass}
-                  >
-                    🛒 Cart
-                  </NavLink>
-
-                  {/* ORDERS */}
-
-                  <NavLink
-                    to="/orders"
-                    className={navLinkClass}
-                  >
-                    📦 My Orders
-                  </NavLink>
-
-                  {/* WISHLIST */}
-
-                  <NavLink
-                    to="/wishlist"
-                    className={navLinkClass}
-                  >
-                    ❤️ Wishlist
-                  </NavLink>
-
-                  {/* PROFILE */}
-
-                  <NavLink
-                    to="/profile"
-                    className={navLinkClass}
-                  >
-                    👤 {displayName}
-                  </NavLink>
-
-                  {/* LOGOUT */}
-
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="navbar-logout"
-                  >
-                    Logout
-                  </button>
-                </>
-
-              ) : (
-
-                /* =================================================
-                    GUEST CUSTOMER
-                ================================================= */
-
-                <>
-                  <NavLink
-                    to="/login"
-                    className={navLinkClass}
-                  >
-                    Login
-                  </NavLink>
-
-                  <NavLink
-                    to="/register"
-                    className="navbar-register"
-                  >
-                    Register
-                  </NavLink>
-                </>
-              )}
-            </>
-          )}
-
-        </nav>
-
-        {/* =================================================
-            MOBILE MENU BUTTON
-        ================================================= */}
-
-        <button
-          type="button"
-          className="navbar-mobile-button"
-          onClick={() =>
-            setMenuOpen(
-              (previous) => !previous
-            )
-          }
-          aria-label="Toggle navigation menu"
-          aria-expanded={menuOpen}
-        >
-          {menuOpen ? "✕" : "☰"}
-        </button>
-
-      </div>
-
-      {/* =====================================================
-          MOBILE NAVIGATION
-      ===================================================== */}
-
-      {menuOpen && (
-        <div className="navbar-mobile">
-
-          <nav className="navbar-mobile-links">
+          <div className="flex items-center gap-8">
 
             {/* =================================================
-                LOGIN / REGISTER
+                BEFORE LOGIN
             ================================================= */}
 
-            {isAuthPage ? (
+            {!isLoggedIn && (
               <>
-                <NavLink
+                {/* HOME */}
+
+                <Link
+                  to="/"
+                  className={linkClass(
+                    isActive("/")
+                  )}
+                >
+                  Home
+                </Link>
+
+                {/* ABOUT */}
+
+                <Link
                   to="/about"
-                  className={navLinkClass}
-                  onClick={() =>
-                    setMenuOpen(false)
-                  }
+                  className={linkClass(
+                    isActive("/about")
+                  )}
                 >
                   About
-                </NavLink>
+                </Link>
 
-                <NavLink
-                  to="/contact"
-                  className={navLinkClass}
-                  onClick={() =>
-                    setMenuOpen(false)
-                  }
+                {/* CONTACT US */}
+
+                <Link
+                  to="/contact-support"
+                  className={linkClass(
+                    isActive("/contact-support")
+                  )}
                 >
                   Contact Us
-                </NavLink>
+                </Link>
+
+                {/* PRODUCTS */}
+
+                <Link
+                  to="/products"
+                  className={linkClass(
+                    isProductsActive()
+                  )}
+                >
+                  Products
+                </Link>
+
+                {/* LOGIN */}
+
+                <Link
+                  to="/login"
+                  className={linkClass(
+                    isActive("/login")
+                  )}
+                >
+                  Login
+                </Link>
               </>
+            )}
 
-            ) : isAdmin ? (
+            {/* =================================================
+                ADMIN
+            ================================================= */}
 
-              /* =================================================
-                  MOBILE ADMIN
-                  NO CONTACT US
-              ================================================= */
-
+            {isLoggedIn && isAdmin && (
               <>
-                <NavLink
+                {/* DASHBOARD */}
+
+                <Link
                   to="/admin/dashboard"
-                  className={navLinkClass}
-                  onClick={() =>
-                    setMenuOpen(false)
-                  }
+                  className={linkClass(
+                    location.pathname.startsWith(
+                      "/admin/dashboard"
+                    )
+                  )}
                 >
-                  📊 Dashboard
-                </NavLink>
+                  Dashboard
+                </Link>
 
-                <NavLink
+                {/* PRODUCTS */}
+
+                <Link
                   to="/admin/products"
-                  className={navLinkClass}
-                  onClick={() =>
-                    setMenuOpen(false)
-                  }
+                  className={linkClass(
+                    location.pathname.startsWith(
+                      "/admin/products"
+                    )
+                  )}
                 >
-                  🍫 Products
-                </NavLink>
+                  Products
+                </Link>
 
-                <NavLink
+                {/* ORDERS */}
+
+                <Link
                   to="/admin/orders"
-                  className={navLinkClass}
-                  onClick={() =>
-                    setMenuOpen(false)
-                  }
+                  className={linkClass(
+                    location.pathname.startsWith(
+                      "/admin/orders"
+                    )
+                  )}
                 >
-                  📦 Orders
-                </NavLink>
+                  Orders
+                </Link>
 
-                <NavLink
-                  to="/profile"
-                  className={navLinkClass}
-                  onClick={() =>
-                    setMenuOpen(false)
-                  }
-                >
-                  👤 Profile
-                </NavLink>
+                {/* LOGOUT */}
 
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="navbar-mobile-logout"
+                  className="
+                    rounded-xl
+                    bg-[#6b2e0b]
+                    px-5
+                    py-3
+                    text-white
+                    font-bold
+                    transition
+                    hover:bg-[#4a1f0b]
+                  "
                 >
                   Logout
                 </button>
               </>
+            )}
 
-            ) : (
+            {/* =================================================
+                CUSTOMER AFTER LOGIN
+            ================================================= */}
 
-              /* =================================================
-                  MOBILE CUSTOMER
-              ================================================= */
-
+            {isCustomer && (
               <>
-                <NavLink
+                {/* HOME */}
+
+                <Link
                   to="/"
-                  className={navLinkClass}
-                  onClick={() =>
-                    setMenuOpen(false)
-                  }
+                  className={linkClass(
+                    isActive("/")
+                  )}
                 >
                   Home
-                </NavLink>
+                </Link>
 
-                <NavLink
+                {/* ABOUT */}
+
+                <Link
                   to="/about"
-                  className={navLinkClass}
-                  onClick={() =>
-                    setMenuOpen(false)
-                  }
+                  className={linkClass(
+                    isActive("/about")
+                  )}
                 >
                   About
-                </NavLink>
+                </Link>
 
-                <NavLink
-                  to="/contact"
-                  className={navLinkClass}
-                  onClick={() =>
-                    setMenuOpen(false)
-                  }
+                {/* CONTACT US */}
+
+                <Link
+                  to="/contact-support"
+                  className={linkClass(
+                    isActive("/contact-support")
+                  )}
                 >
                   Contact Us
-                </NavLink>
+                </Link>
 
-                <NavLink
+                {/* PRODUCTS */}
+
+                <Link
                   to="/products"
-                  className={navLinkClass}
-                  onClick={() =>
-                    setMenuOpen(false)
-                  }
+                  className={linkClass(
+                    isProductsActive()
+                  )}
                 >
                   Products
-                </NavLink>
+                </Link>
 
-                {token && user ? (
-                  <>
-                    <NavLink
-                      to="/cart"
-                      className={navLinkClass}
-                      onClick={() =>
-                        setMenuOpen(false)
-                      }
-                    >
-                      🛒 Cart
-                    </NavLink>
+                {/* CART */}
 
-                    <NavLink
-                      to="/orders"
-                      className={navLinkClass}
-                      onClick={() =>
-                        setMenuOpen(false)
-                      }
-                    >
-                      📦 My Orders
-                    </NavLink>
+                <Link
+                  to="/cart"
+                  className={linkClass(
+                    isActive("/cart")
+                  )}
+                >
+                  🛒 Cart
+                </Link>
 
-                    <NavLink
-                      to="/wishlist"
-                      className={navLinkClass}
-                      onClick={() =>
-                        setMenuOpen(false)
-                      }
-                    >
-                      ❤️ Wishlist
-                    </NavLink>
+                {/* MY ORDERS */}
 
-                    <NavLink
-                      to="/profile"
-                      className={navLinkClass}
-                      onClick={() =>
-                        setMenuOpen(false)
-                      }
-                    >
-                      👤 {displayName}
-                    </NavLink>
+                <Link
+                  to="/orders"
+                  className={linkClass(
+                    isActive("/orders")
+                  )}
+                >
+                  📦 My Orders
+                </Link>
 
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="navbar-mobile-logout"
-                    >
-                      Logout
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <NavLink
-                      to="/login"
-                      className={navLinkClass}
-                      onClick={() =>
-                        setMenuOpen(false)
-                      }
-                    >
-                      Login
-                    </NavLink>
+                {/* WISHLIST */}
 
-                    <NavLink
-                      to="/register"
-                      className="navbar-register mobile-register"
-                      onClick={() =>
-                        setMenuOpen(false)
-                      }
-                    >
-                      Register
-                    </NavLink>
-                  </>
-                )}
+                <Link
+                  to="/wishlist"
+                  className={linkClass(
+                    isActive("/wishlist")
+                  )}
+                >
+                  💗 Wishlist
+                </Link>
+
+                {/* PROFILE */}
+
+                <Link
+                  to="/profile"
+                  className={linkClass(
+                    isActive("/profile")
+                  )}
+                >
+                  👤 Profile
+                </Link>
+
+                {/* LOGOUT */}
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="
+                    rounded-xl
+                    bg-[#6b2e0b]
+                    px-5
+                    py-3
+                    text-white
+                    font-bold
+                    transition
+                    hover:bg-[#4a1f0b]
+                  "
+                >
+                  Logout
+                </button>
               </>
             )}
 
-          </nav>
+          </div>
 
         </div>
-      )}
+
+      </nav>
 
     </header>
   );

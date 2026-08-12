@@ -22,6 +22,10 @@ function ContactSupport() {
       ...previous,
       [name]: value,
     }));
+
+    if (submitted) {
+      setSubmitted(false);
+    }
   };
 
   // =====================================================
@@ -31,16 +35,25 @@ function ContactSupport() {
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    const { name, email, subject, message } =
-      formData;
+    const {
+      name,
+      email,
+      subject,
+      message,
+    } = formData;
 
-    if (!name || !email || !subject || !message) {
+    if (
+      !name.trim() ||
+      !email.trim() ||
+      !subject ||
+      !message.trim()
+    ) {
       alert("Please fill in all fields.");
       return;
     }
 
     // ---------------------------------------------------
-    // Open user's email application
+    // OPEN USER'S EMAIL APPLICATION
     // ---------------------------------------------------
 
     const mailSubject = encodeURIComponent(
@@ -69,6 +82,7 @@ function ContactSupport() {
         <div className="max-w-6xl mx-auto text-center">
 
           <div className="inline-flex items-center gap-2 bg-white px-5 py-2 rounded-full shadow-sm">
+
             <span className="text-xl">
               💬
             </span>
@@ -76,6 +90,7 @@ function ContactSupport() {
             <span className="font-semibold text-[#8a3d0c]">
               We're Here to Help
             </span>
+
           </div>
 
           <h1 className="mt-6 text-5xl md:text-6xl font-extrabold text-[#6b2e0b]">
@@ -91,6 +106,7 @@ function ContactSupport() {
         </div>
 
       </section>
+
 
       {/* =================================================
           MAIN CONTENT
@@ -116,9 +132,10 @@ function ContactSupport() {
               options below.
             </p>
 
-            {/* ---------------------------------------------
-                EMAIL
-            ---------------------------------------------- */}
+
+            {/* =================================================
+                EMAIL SUPPORT
+            ================================================= */}
 
             <div className="mt-8 bg-white rounded-2xl p-6 shadow-md border border-[#f0dfce]">
 
@@ -152,9 +169,10 @@ function ContactSupport() {
 
             </div>
 
-            {/* ---------------------------------------------
-                PHONE
-            ---------------------------------------------- */}
+
+            {/* =================================================
+                PHONE SUPPORT
+            ================================================= */}
 
             <div className="mt-5 bg-white rounded-2xl p-6 shadow-md border border-[#f0dfce]">
 
@@ -188,9 +206,10 @@ function ContactSupport() {
 
             </div>
 
-            {/* ---------------------------------------------
+
+            {/* =================================================
                 WHATSAPP
-            ---------------------------------------------- */}
+            ================================================= */}
 
             <div className="mt-5 bg-white rounded-2xl p-6 shadow-md border border-[#f0dfce]">
 
@@ -225,9 +244,10 @@ function ContactSupport() {
 
             </div>
 
-            {/* ---------------------------------------------
+
+            {/* =================================================
                 BUSINESS HOURS
-            ---------------------------------------------- */}
+            ================================================= */}
 
             <div className="mt-5 bg-white rounded-2xl p-6 shadow-md border border-[#f0dfce]">
 
@@ -259,6 +279,7 @@ function ContactSupport() {
 
           </div>
 
+
           {/* =================================================
               CONTACT FORM
           ================================================= */}
@@ -276,9 +297,10 @@ function ContactSupport() {
                 help you with your request.
               </p>
 
-              {/* =========================================
+
+              {/* =================================================
                   SUCCESS MESSAGE
-              ========================================== */}
+              ================================================= */}
 
               {submitted && (
                 <div className="mt-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
@@ -286,6 +308,11 @@ function ContactSupport() {
                   open with your support request.
                 </div>
               )}
+
+
+              {/* =================================================
+                  FORM
+              ================================================= */}
 
               <form
                 onSubmit={handleSubmit}
@@ -315,6 +342,7 @@ function ContactSupport() {
 
                 </div>
 
+
                 {/* EMAIL */}
 
                 <div>
@@ -337,6 +365,7 @@ function ContactSupport() {
                   />
 
                 </div>
+
 
                 {/* SUBJECT */}
 
@@ -389,6 +418,7 @@ function ContactSupport() {
 
                 </div>
 
+
                 {/* MESSAGE */}
 
                 <div>
@@ -412,6 +442,7 @@ function ContactSupport() {
 
                 </div>
 
+
                 {/* SUBMIT */}
 
                 <button
@@ -431,8 +462,11 @@ function ContactSupport() {
 
       </section>
 
+
       {/* =================================================
-          FAQ / QUICK HELP
+          QUICK HELP
+          
+          BROWSE CHOCOLATES REMOVED
       ================================================= */}
 
       <section className="px-6 pb-16">
@@ -446,18 +480,15 @@ function ContactSupport() {
             </h2>
 
             <p className="mt-3 text-[#f8dfc5]">
-              You can browse our chocolates or
-              check your previous orders.
+              You can check your previous orders.
             </p>
 
-            <div className="mt-7 flex flex-col sm:flex-row justify-center gap-4">
 
-              <Link
-                to="/products"
-                className="rounded-xl bg-white px-6 py-3 font-bold text-[#6b2e0b] hover:bg-[#fff0df] transition"
-              >
-                Browse Chocolates
-              </Link>
+            {/* =================================================
+                ONLY MY ORDERS BUTTON
+            ================================================= */}
+
+            <div className="mt-7 flex justify-center">
 
               <Link
                 to="/orders"

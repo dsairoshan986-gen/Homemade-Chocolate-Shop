@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import {
+  Link,
+  useNavigate,
+} from "react-router-dom";
 
 import API_URL from "../../config/api";
 
@@ -10,18 +13,30 @@ function Register() {
   // FORM STATE
   // =====================================================
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+  const [formData, setFormData] =
+    useState({
+      name: "",
+      email: "",
+      phone: "",
+      password: "",
+      confirmPassword: "",
+    });
+
+  // =====================================================
+  // PASSWORD VISIBILITY
+  // =====================================================
 
   const [showPassword, setShowPassword] =
     useState(false);
 
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState(false);
+  const [
+    showConfirmPassword,
+    setShowConfirmPassword,
+  ] = useState(false);
+
+  // =====================================================
+  // UI STATE
+  // =====================================================
 
   const [loading, setLoading] =
     useState(false);
@@ -37,13 +52,49 @@ function Register() {
   // =====================================================
 
   const handleChange = (event) => {
-    const { name, value } = event.target;
+    const {
+      name,
+      value,
+    } = event.target;
 
-    setFormData((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+    // ---------------------------------------------------
+    // PHONE NUMBER
+    // ---------------------------------------------------
 
+    if (name === "phone") {
+
+      // Remove anything that is not a number
+      const numbersOnly =
+        value.replace(
+          /\D/g,
+          ""
+        );
+
+      // Maximum 10 digits
+      if (
+        numbersOnly.length > 10
+      ) {
+        return;
+      }
+
+      setFormData(
+        (previous) => ({
+          ...previous,
+          phone: numbersOnly,
+        })
+      );
+
+    } else {
+
+      setFormData(
+        (previous) => ({
+          ...previous,
+          [name]: value,
+        })
+      );
+    }
+
+    // Clear messages
     if (error) {
       setError("");
     }
@@ -58,50 +109,118 @@ function Register() {
   // =====================================================
 
   const validateForm = () => {
-    const name = formData.name.trim();
-    const email = formData.email.trim();
-    const password = formData.password;
+
+    const name =
+      formData.name.trim();
+
+    const email =
+      formData.email.trim();
+
+    const phone =
+      formData.phone.trim();
+
+    const password =
+      formData.password;
+
     const confirmPassword =
       formData.confirmPassword;
 
-    // Name
+    // =================================================
+    // NAME
+    // =================================================
+
     if (!name) {
-      return "Please enter your name.";
+      return (
+        "Please enter your full name."
+      );
     }
 
     if (name.length < 2) {
-      return "Name must contain at least 2 characters.";
+      return (
+        "Name must contain at least 2 characters."
+      );
     }
 
-    // Email
+    // =================================================
+    // EMAIL
+    // =================================================
+
     if (!email) {
-      return "Please enter your email address.";
+      return (
+        "Please enter your email address."
+      );
     }
 
     const emailRegex =
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!emailRegex.test(email)) {
-      return "Please enter a valid email address.";
+    if (
+      !emailRegex.test(email)
+    ) {
+      return (
+        "Please enter a valid email address."
+      );
     }
 
-    // Password
+    // =================================================
+    // PHONE
+    // =================================================
+
+    if (!phone) {
+      return (
+        "Please enter your phone number."
+      );
+    }
+
+    const phoneRegex =
+      /^[6-9]\d{9}$/;
+
+    if (
+      !phoneRegex.test(phone)
+    ) {
+      return (
+        "Please enter a valid 10-digit Indian phone number."
+      );
+    }
+
+    // =================================================
+    // PASSWORD
+    // =================================================
+
     if (!password) {
-      return "Please enter a password.";
+      return (
+        "Please enter a password."
+      );
     }
 
     if (password.length < 6) {
-      return "Password must contain at least 6 characters.";
+      return (
+        "Password must contain at least 6 characters."
+      );
     }
 
-    // Confirm password
+    // =================================================
+    // CONFIRM PASSWORD
+    // =================================================
+
     if (!confirmPassword) {
-      return "Please confirm your password.";
+      return (
+        "Please confirm your password."
+      );
     }
 
-    if (password !== confirmPassword) {
-      return "Passwords do not match.";
+    if (
+      password !==
+      confirmPassword
+    ) {
+      return (
+        "Passwords do not match."
+      );
     }
+
+    // =================================================
+    // VALID
+    // =================================================
 
     return "";
   };
@@ -110,25 +229,36 @@ function Register() {
   // HANDLE REGISTER
   // =====================================================
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (
+    event
+  ) => {
+
     event.preventDefault();
 
     setError("");
     setSuccess("");
 
-    // ---------------------------------------------------
+    // =================================================
     // VALIDATE
-    // ---------------------------------------------------
+    // =================================================
 
     const validationError =
       validateForm();
 
     if (validationError) {
-      setError(validationError);
+      setError(
+        validationError
+      );
+
       return;
     }
 
+    // =================================================
+    // API REQUEST
+    // =================================================
+
     try {
+
       setLoading(true);
 
       console.log(
@@ -136,25 +266,37 @@ function Register() {
       );
 
       // -------------------------------------------------
-      // REGISTER API
+      // REGISTER REQUEST
       // -------------------------------------------------
 
-      const response = await fetch(
-        `${API_URL}/auth/register`,
-        {
-          method: "POST",
+      const response =
+        await fetch(
+          `${API_URL}/auth/register`,
+          {
+            method: "POST",
 
-          headers: {
-            "Content-Type": "application/json",
-          },
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
 
-          body: JSON.stringify({
-            name: formData.name.trim(),
-            email: formData.email.trim(),
-            password: formData.password,
-          }),
-        }
-      );
+            body: JSON.stringify({
+              name:
+                formData.name.trim(),
+
+              email:
+                formData.email
+                  .trim()
+                  .toLowerCase(),
+
+              phone:
+                formData.phone.trim(),
+
+              password:
+                formData.password,
+            }),
+          }
+        );
 
       const result =
         await response.json();
@@ -164,11 +306,15 @@ function Register() {
         result
       );
 
-      // -------------------------------------------------
+      // =================================================
       // REGISTRATION FAILED
-      // -------------------------------------------------
+      // =================================================
 
-      if (!response.ok || !result.success) {
+      if (
+        !response.ok ||
+        !result.success
+      ) {
+
         setError(
           result.message ||
             "Registration failed. Please try again."
@@ -177,33 +323,43 @@ function Register() {
         return;
       }
 
-      // -------------------------------------------------
-      // SUCCESS
-      // -------------------------------------------------
+      // =================================================
+      // REGISTRATION SUCCESS
+      // =================================================
 
       setSuccess(
         "Registration successful! Redirecting to login..."
       );
 
-      // Clear form
+      // =================================================
+      // CLEAR FORM
+      // =================================================
+
       setFormData({
         name: "",
         email: "",
+        phone: "",
         password: "",
         confirmPassword: "",
       });
 
-      // -------------------------------------------------
+      // =================================================
       // REDIRECT TO LOGIN
-      // -------------------------------------------------
+      // =================================================
 
       setTimeout(() => {
-        navigate("/login", {
-          replace: true,
-        });
+
+        navigate(
+          "/login",
+          {
+            replace: true,
+          }
+        );
+
       }, 1200);
 
     } catch (err) {
+
       console.error(
         "Registration Error:",
         err
@@ -215,7 +371,9 @@ function Register() {
       );
 
     } finally {
+
       setLoading(false);
+
     }
   };
 
@@ -266,9 +424,9 @@ function Register() {
 
           </div>
 
-          {/* =============================================
+          {/* =================================================
               FORM
-          ============================================== */}
+          ================================================= */}
 
           <form
             onSubmit={handleSubmit}
@@ -302,7 +460,7 @@ function Register() {
             )}
 
             {/* =========================================
-                NAME
+                FULL NAME
             ========================================== */}
 
             <div className="mb-5">
@@ -321,7 +479,9 @@ function Register() {
                 autoComplete="name"
                 placeholder="Enter your full name"
                 value={formData.name}
-                onChange={handleChange}
+                onChange={
+                  handleChange
+                }
                 disabled={loading}
                 className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3.5 text-gray-800 outline-none transition focus:border-[#b84d00] focus:ring-2 focus:ring-[#b84d00]/20 disabled:bg-gray-100"
               />
@@ -348,10 +508,59 @@ function Register() {
                 autoComplete="email"
                 placeholder="Enter your email"
                 value={formData.email}
-                onChange={handleChange}
+                onChange={
+                  handleChange
+                }
                 disabled={loading}
                 className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3.5 text-gray-800 outline-none transition focus:border-[#b84d00] focus:ring-2 focus:ring-[#b84d00]/20 disabled:bg-gray-100"
               />
+
+            </div>
+
+            {/* =========================================
+                PHONE NUMBER
+            ========================================== */}
+
+            <div className="mb-5">
+
+              <label
+                htmlFor="phone"
+                className="block text-sm font-bold text-gray-800 mb-2"
+              >
+                Phone Number
+              </label>
+
+              <div className="flex">
+
+                {/* COUNTRY CODE */}
+
+                <span className="flex items-center px-4 rounded-l-xl border border-r-0 border-gray-300 bg-gray-100 text-gray-700 font-semibold">
+                  +91
+                </span>
+
+                {/* PHONE INPUT */}
+
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  placeholder="Enter 10-digit phone number"
+                  value={formData.phone}
+                  onChange={
+                    handleChange
+                  }
+                  disabled={loading}
+                  maxLength={10}
+                  className="w-full rounded-r-xl border border-gray-300 bg-white px-4 py-3.5 text-gray-800 outline-none transition focus:border-[#b84d00] focus:ring-2 focus:ring-[#b84d00]/20 disabled:bg-gray-100"
+                />
+
+              </div>
+
+              <p className="text-xs text-gray-500 mt-2">
+                Enter your 10-digit mobile number.
+              </p>
 
             </div>
 
@@ -380,8 +589,12 @@ function Register() {
                   }
                   autoComplete="new-password"
                   placeholder="Create a password"
-                  value={formData.password}
-                  onChange={handleChange}
+                  value={
+                    formData.password
+                  }
+                  onChange={
+                    handleChange
+                  }
                   disabled={loading}
                   className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3.5 pr-16 text-gray-800 outline-none transition focus:border-[#b84d00] focus:ring-2 focus:ring-[#b84d00]/20 disabled:bg-gray-100"
                 />
@@ -438,7 +651,9 @@ function Register() {
                   value={
                     formData.confirmPassword
                   }
-                  onChange={handleChange}
+                  onChange={
+                    handleChange
+                  }
                   disabled={loading}
                   className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3.5 pr-16 text-gray-800 outline-none transition focus:border-[#b84d00] focus:ring-2 focus:ring-[#b84d00]/20 disabled:bg-gray-100"
                 />
@@ -472,6 +687,7 @@ function Register() {
               disabled={loading}
               className="w-full rounded-xl bg-[#b84d00] px-6 py-4 text-white font-bold text-lg shadow-md transition hover:bg-[#963f00] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
             >
+
               {loading ? (
                 <span className="flex items-center justify-center gap-3">
 
@@ -483,6 +699,7 @@ function Register() {
               ) : (
                 "Create Account"
               )}
+
             </button>
 
             {/* =========================================

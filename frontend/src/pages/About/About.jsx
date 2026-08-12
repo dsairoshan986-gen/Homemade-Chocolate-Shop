@@ -1,110 +1,102 @@
-import { useNavigate } from "react-router-dom";
-
 function About() {
-  const navigate = useNavigate();
-
   return (
-    <div className="min-h-screen bg-[#fffaf0]">
+    <main className="min-h-screen bg-[#fff8ef] text-[#632b0e]">
 
-      {/* =====================================================
-          HERO SECTION
-      ===================================================== */}
+      {/* =================================================
+          HERO
+      ================================================= */}
 
-      <section className="relative overflow-hidden bg-gradient-to-br from-amber-950 via-amber-900 to-amber-800 text-white">
+      <section className="max-w-6xl mx-auto px-6 py-20">
 
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-white" />
-          <div className="absolute -bottom-32 -right-20 w-96 h-96 rounded-full bg-white" />
-        </div>
+        <div className="text-center">
 
-        <div className="relative max-w-7xl mx-auto px-6 py-24 text-center">
+          <div className="inline-flex items-center gap-2 bg-[#fff0df] px-5 py-3 rounded-full mb-6">
 
-          <p className="uppercase tracking-[0.3em] text-amber-200 text-sm font-semibold mb-5">
-            Welcome to our chocolate world
-          </p>
+            <span>
+              🍫
+            </span>
 
-          <h1 className="text-5xl md:text-6xl font-bold mb-6">
-            Made With Love,
-            <br />
-            Crafted With Chocolate
+            <span className="font-bold">
+              About Chocolate Shop
+            </span>
+
+          </div>
+
+
+          <h1 className="text-5xl md:text-6xl font-extrabold mb-6">
+            Handmade With Love
           </h1>
 
-          <p className="max-w-2xl mx-auto text-lg md:text-xl text-amber-100 leading-relaxed">
-            Discover delicious homemade chocolates created
-            with care, quality ingredients, and a passion
-            for making every moment a little sweeter.
+
+          <p className="max-w-3xl mx-auto text-lg md:text-xl text-[#36516d] leading-8">
+            We create delicious handmade chocolates using
+            premium ingredients, rich flavors and lots of love.
           </p>
 
         </div>
 
       </section>
 
-      {/* =====================================================
+
+      {/* =================================================
           OUR STORY
-      ===================================================== */}
+      ================================================= */}
 
-      <section className="max-w-7xl mx-auto px-6 py-20">
+      <section className="max-w-6xl mx-auto px-6 pb-20">
 
-        <div className="grid md:grid-cols-2 gap-14 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
 
-          {/* Chocolate Illustration */}
 
-          <div className="relative">
+          {/* IMAGE / CHOCOLATE AREA */}
 
-            <div className="bg-gradient-to-br from-amber-900 to-amber-700 rounded-[2rem] p-10 shadow-2xl">
+          <div className="bg-[#f4dfc8] rounded-3xl min-h-[400px] flex items-center justify-center shadow-lg">
 
-              <div className="bg-[#fffaf0] rounded-3xl p-10 text-center">
+            <div className="text-center">
 
-                <div className="text-8xl mb-6">
-                  🍫
-                </div>
-
-                <h3 className="text-2xl font-bold text-amber-900">
-                  Handmade Happiness
-                </h3>
-
-                <p className="mt-3 text-gray-600">
-                  Every chocolate is prepared with
-                  attention to detail.
-                </p>
-
+              <div className="text-8xl mb-5">
+                🍫
               </div>
+
+              <h2 className="text-3xl font-extrabold">
+                Made With Love
+              </h2>
 
             </div>
 
           </div>
 
-          {/* Story */}
+
+          {/* STORY */}
 
           <div>
 
-            <p className="text-sm uppercase tracking-[0.25em] text-amber-700 font-bold mb-3">
+            <p className="text-[#c65300] font-bold uppercase tracking-wide mb-3">
               Our Story
             </p>
 
-            <h2 className="text-4xl md:text-5xl font-bold text-amber-950 mb-6">
-              A Little Bit of Chocolate,
-              <br />
-              A Lot of Love
+            <h2 className="text-4xl font-extrabold mb-6">
+              A Little Chocolate,
+              A Lot of Happiness
             </h2>
 
-            <p className="text-gray-700 text-lg leading-relaxed mb-5">
-              Our homemade chocolate journey started with
-              a simple idea — create chocolates that feel
-              personal, delicious, and made with genuine care.
+            <p className="text-[#36516d] leading-8 mb-5">
+              Chocolate Shop was created with one simple idea:
+              to make delicious chocolates that bring happiness
+              to every occasion.
             </p>
 
-            <p className="text-gray-700 text-lg leading-relaxed mb-5">
-              Instead of mass-produced treats, we focus on
-              carefully prepared chocolates that bring the
-              warmth of homemade goodness to every customer.
+            <p className="text-[#36516d] leading-8 mb-5">
+              Every chocolate is carefully prepared using
+              quality ingredients and attention to detail.
+              From classic favorites to special creations,
+              we put care into everything we make.
             </p>
 
-            <p className="text-gray-700 text-lg leading-relaxed">
-              From rich dark chocolate to creamy milk
-              chocolate and delightful Ferrero-inspired
-              treats, every product is created to make your
-              chocolate experience special.
+            <p className="text-[#36516d] leading-8">
+              Whether you are treating yourself, celebrating
+              a special occasion or sharing something sweet
+              with someone you love, our chocolates are made
+              to make every moment a little more special.
             </p>
 
           </div>
@@ -113,106 +105,86 @@ function About() {
 
       </section>
 
-      {/* =====================================================
-          WHY CHOOSE US
-      ===================================================== */}
+
+      {/* =================================================
+          VALUES
+      ================================================= */}
 
       <section className="bg-white py-20">
 
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-6">
 
-          <div className="text-center mb-14">
+          <div className="text-center mb-12">
 
-            <p className="text-sm uppercase tracking-[0.25em] text-amber-700 font-bold mb-3">
+            <p className="text-[#c65300] font-bold uppercase tracking-wide mb-3">
               Why Choose Us
             </p>
 
-            <h2 className="text-4xl font-bold text-amber-950">
-              What Makes Our Chocolates Special?
+            <h2 className="text-4xl font-extrabold">
+              Made For Chocolate Lovers
             </h2>
-
-            <p className="max-w-2xl mx-auto mt-4 text-gray-600 text-lg">
-              We believe great chocolate is about more than
-              just taste. It is about quality, care, and the
-              experience behind every bite.
-            </p>
 
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-7">
 
-            {/* Card 1 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
-            <div className="rounded-3xl bg-[#fffaf0] p-8 text-center shadow-md hover:shadow-xl transition">
 
-              <div className="text-5xl mb-5">
-                🏠
-              </div>
+            {/* CARD 1 */}
 
-              <h3 className="text-xl font-bold text-amber-950 mb-3">
-                Homemade
-              </h3>
-
-              <p className="text-gray-600 leading-relaxed">
-                Prepared with the care and attention you
-                expect from homemade chocolates.
-              </p>
-
-            </div>
-
-            {/* Card 2 */}
-
-            <div className="rounded-3xl bg-[#fffaf0] p-8 text-center shadow-md hover:shadow-xl transition">
-
-              <div className="text-5xl mb-5">
-                🌱
-              </div>
-
-              <h3 className="text-xl font-bold text-amber-950 mb-3">
-                Quality Ingredients
-              </h3>
-
-              <p className="text-gray-600 leading-relaxed">
-                We focus on quality ingredients to create
-                chocolates with delicious flavor and texture.
-              </p>
-
-            </div>
-
-            {/* Card 3 */}
-
-            <div className="rounded-3xl bg-[#fffaf0] p-8 text-center shadow-md hover:shadow-xl transition">
+            <div className="bg-[#fff8ef] rounded-2xl p-8 text-center shadow-sm">
 
               <div className="text-5xl mb-5">
                 ❤️
               </div>
 
-              <h3 className="text-xl font-bold text-amber-950 mb-3">
-                Made With Care
+              <h3 className="text-2xl font-bold mb-4">
+                Made With Love
               </h3>
 
-              <p className="text-gray-600 leading-relaxed">
-                Every product receives attention to detail
-                from preparation to packaging.
+              <p className="text-[#36516d] leading-7">
+                Every chocolate is carefully prepared with
+                passion and attention to detail.
               </p>
 
             </div>
 
-            {/* Card 4 */}
 
-            <div className="rounded-3xl bg-[#fffaf0] p-8 text-center shadow-md hover:shadow-xl transition">
+            {/* CARD 2 */}
+
+            <div className="bg-[#fff8ef] rounded-2xl p-8 text-center shadow-sm">
 
               <div className="text-5xl mb-5">
-                ✨
+                ⭐
               </div>
 
-              <h3 className="text-xl font-bold text-amber-950 mb-3">
-                Sweet Experience
+              <h3 className="text-2xl font-bold mb-4">
+                Premium Quality
               </h3>
 
-              <p className="text-gray-600 leading-relaxed">
-                Our goal is to make every order feel special,
-                memorable, and delicious.
+              <p className="text-[#36516d] leading-7">
+                We use quality ingredients to create rich,
+                delicious and satisfying chocolates.
+              </p>
+
+            </div>
+
+
+            {/* CARD 3 */}
+
+            <div className="bg-[#fff8ef] rounded-2xl p-8 text-center shadow-sm">
+
+              <div className="text-5xl mb-5">
+                🍫
+              </div>
+
+              <h3 className="text-2xl font-bold mb-4">
+                Fresh Chocolates
+              </h3>
+
+              <p className="text-[#36516d] leading-7">
+                Our chocolates are prepared with care so
+                every bite tastes fresh and delicious.
               </p>
 
             </div>
@@ -223,117 +195,46 @@ function About() {
 
       </section>
 
-      {/* =====================================================
-          OUR VALUES
-      ===================================================== */}
 
-      <section className="max-w-7xl mx-auto px-6 py-20">
+      {/* =================================================
+          CONTACT CTA
+      ================================================= */}
 
-        <div className="text-center mb-14">
+      <section className="max-w-5xl mx-auto px-6 py-20">
 
-          <p className="text-sm uppercase tracking-[0.25em] text-amber-700 font-bold mb-3">
-            Our Values
-          </p>
+        <div className="bg-[#6b2e0b] text-white rounded-3xl p-10 md:p-14 text-center">
 
-          <h2 className="text-4xl font-bold text-amber-950">
-            What We Believe In
+          <h2 className="text-4xl font-extrabold mb-5">
+            Have Questions?
           </h2>
 
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8">
-
-          <div className="border border-amber-100 rounded-3xl p-8 bg-white shadow-sm">
-
-            <div className="text-4xl mb-5">
-              🤎
-            </div>
-
-            <h3 className="text-2xl font-bold text-amber-950 mb-3">
-              Quality
-            </h3>
-
-            <p className="text-gray-600 leading-relaxed">
-              We aim to deliver chocolates that meet a
-              high standard of taste, freshness, and
-              presentation.
-            </p>
-
-          </div>
-
-          <div className="border border-amber-100 rounded-3xl p-8 bg-white shadow-sm">
-
-            <div className="text-4xl mb-5">
-              👩‍🍳
-            </div>
-
-            <h3 className="text-2xl font-bold text-amber-950 mb-3">
-              Craftsmanship
-            </h3>
-
-            <p className="text-gray-600 leading-relaxed">
-              We treat chocolate making as a craft,
-              paying attention to the details that make
-              each product enjoyable.
-            </p>
-
-          </div>
-
-          <div className="border border-amber-100 rounded-3xl p-8 bg-white shadow-sm">
-
-            <div className="text-4xl mb-5">
-              😊
-            </div>
-
-            <h3 className="text-2xl font-bold text-amber-950 mb-3">
-              Customer Happiness
-            </h3>
-
-            <p className="text-gray-600 leading-relaxed">
-              We want every customer to enjoy not only
-              our chocolates but also the experience of
-              ordering from us.
-            </p>
-
-          </div>
-
-        </div>
-
-      </section>
-
-      {/* =====================================================
-          CALL TO ACTION
-      ===================================================== */}
-
-      <section className="bg-gradient-to-r from-amber-900 to-amber-800 text-white">
-
-        <div className="max-w-5xl mx-auto px-6 py-20 text-center">
-
-          <div className="text-6xl mb-6">
-            🍫
-          </div>
-
-          <h2 className="text-4xl md:text-5xl font-bold mb-5">
-            Ready for Something Sweet?
-          </h2>
-
-          <p className="text-amber-100 text-lg max-w-2xl mx-auto mb-8">
-            Explore our collection of homemade chocolates
-            and find your next favorite treat.
+          <p className="text-[#f5d8c6] text-lg mb-8">
+            We would love to hear from you.
           </p>
 
-          <button
-            onClick={() => navigate("/products")}
-            className="bg-white text-amber-900 px-8 py-4 rounded-xl font-bold text-lg hover:bg-amber-50 transition shadow-lg"
+          <a
+            href="/contact-support"
+            className="
+              inline-block
+              bg-[#c65300]
+              text-white
+              px-8
+              py-4
+              rounded-xl
+              font-bold
+              no-underline
+              hover:bg-[#a84300]
+              transition
+            "
           >
-            Explore Our Chocolates
-          </button>
+            Contact Us
+          </a>
 
         </div>
 
       </section>
 
-    </div>
+    </main>
   );
 }
 
