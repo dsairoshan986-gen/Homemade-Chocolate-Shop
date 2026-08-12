@@ -28,6 +28,19 @@ import Login from "./pages/Login/Login";
 import Register from "./pages/Register/Register";
 
 // =====================================================
+// CUSTOMER ACCOUNT PAGES
+// =====================================================
+
+import Profile from "./pages/Profile/Profile";
+import Wishlist from "./pages/Wishlist/Wishlist";
+
+// =====================================================
+// CONTACT SUPPORT
+// =====================================================
+
+import ContactSupport from "./pages/ContactSupport/ContactSupport";
+
+// =====================================================
 // ADMIN PAGES
 // =====================================================
 
@@ -42,25 +55,64 @@ import AdminProducts from "./pages/Admin/AdminProducts";
 import NotFound from "./pages/NotFound/NotFound";
 
 // =====================================================
-// PROTECTED ADMIN ROUTE
+// PROTECTED CUSTOMER ROUTE
 // =====================================================
 
-function ProtectedAdminRoute({ children }) {
+function ProtectedCustomerRoute({ children }) {
   const token = localStorage.getItem("token");
+  const userData = localStorage.getItem("user");
 
   // ---------------------------------------------------
   // User is not logged in
   // ---------------------------------------------------
 
-  if (!token) {
+  if (!token || !userData) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+// =====================================================
+// PROTECTED ADMIN ROUTE
+// =====================================================
+
+function ProtectedAdminRoute({ children }) {
+  const token = localStorage.getItem("token");
+  const userData = localStorage.getItem("user");
+
+  // ---------------------------------------------------
+  // User is not logged in
+  // ---------------------------------------------------
+
+  if (!token || !userData) {
     return <Navigate to="/login" replace />;
   }
 
   // ---------------------------------------------------
-  // User is logged in
+  // Check user information
   // ---------------------------------------------------
 
-  return children;
+  try {
+    const user = JSON.parse(userData);
+
+    // -------------------------------------------------
+    // Only admin can access admin pages
+    // -------------------------------------------------
+
+    if (user.role !== "admin") {
+      return <Navigate to="/" replace />;
+    }
+
+    return children;
+  } catch (error) {
+    console.error("Invalid user data:", error);
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    return <Navigate to="/login" replace />;
+  }
 }
 
 // =====================================================
@@ -70,6 +122,7 @@ function ProtectedAdminRoute({ children }) {
 function App() {
   return (
     <>
+
       {/* =================================================
           NAVBAR
       ================================================= */}
@@ -142,7 +195,11 @@ function App() {
 
         <Route
           path="/cart"
-          element={<Cart />}
+          element={
+            <ProtectedCustomerRoute>
+              <Cart />
+            </ProtectedCustomerRoute>
+          }
         />
 
         {/* =================================================
@@ -151,7 +208,11 @@ function App() {
 
         <Route
           path="/checkout"
-          element={<Checkout />}
+          element={
+            <ProtectedCustomerRoute>
+              <Checkout />
+            </ProtectedCustomerRoute>
+          }
         />
 
         {/* =================================================
@@ -160,7 +221,11 @@ function App() {
 
         <Route
           path="/orders"
-          element={<Orders />}
+          element={
+            <ProtectedCustomerRoute>
+              <Orders />
+            </ProtectedCustomerRoute>
+          }
         />
 
         {/* =================================================
@@ -169,17 +234,59 @@ function App() {
 
         <Route
           path="/order-success"
-          element={<OrderSuccess />}
+          element={
+            <ProtectedCustomerRoute>
+              <OrderSuccess />
+            </ProtectedCustomerRoute>
+          }
         />
 
         <Route
           path="/order-success/:id"
-          element={<OrderSuccess />}
+          element={
+            <ProtectedCustomerRoute>
+              <OrderSuccess />
+            </ProtectedCustomerRoute>
+          }
+        />
+
+        {/* =================================================
+            PROFILE
+        ================================================= */}
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedCustomerRoute>
+              <Profile />
+            </ProtectedCustomerRoute>
+          }
+        />
+
+        {/* =================================================
+            WISHLIST
+        ================================================= */}
+
+        <Route
+          path="/wishlist"
+          element={
+            <ProtectedCustomerRoute>
+              <Wishlist />
+            </ProtectedCustomerRoute>
+          }
+        />
+
+        {/* =================================================
+            CONTACT SUPPORT
+        ================================================= */}
+
+        <Route
+          path="/contact-support"
+          element={<ContactSupport />}
         />
 
         {/* =================================================
             ADMIN DASHBOARD
-            PROTECTED
         ================================================= */}
 
         <Route
@@ -193,7 +300,6 @@ function App() {
 
         {/* =================================================
             ADMIN ORDERS
-            PROTECTED
         ================================================= */}
 
         <Route
@@ -207,7 +313,6 @@ function App() {
 
         {/* =================================================
             ADMIN PRODUCTS
-            PROTECTED
         ================================================= */}
 
         <Route
@@ -235,6 +340,7 @@ function App() {
       ================================================= */}
 
       <Footer />
+
     </>
   );
 }

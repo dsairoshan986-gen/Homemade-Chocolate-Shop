@@ -1,32 +1,34 @@
-import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import "./AdminOrders.css";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-const API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import API_URL from "../../config/api";
 
-const ORDER_STATUSES = [
-  "Pending",
-  "Confirmed",
-  "Processing",
-  "Shipped",
-  "Delivered",
-  "Cancelled",
-];
+// =====================================================
+// ADMIN ORDERS
+// =====================================================
 
 function AdminOrders() {
   const navigate = useNavigate();
 
+  // =====================================================
+  // STATE
+  // =====================================================
+
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [updatingOrderId, setUpdatingOrderId] = useState(null);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   // =====================================================
-  // CHECK ADMIN AUTHORIZATION
+  // CHECK ADMIN
   // =====================================================
 
-  const checkAdminAccess = () => {
+  useEffect(() => {
     const token = localStorage.getItem("token");
 
     let user = null;
@@ -36,43 +38,52 @@ function AdminOrders() {
         localStorage.getItem("user") || "null"
       );
     } catch (error) {
-      console.error(
-        "Failed to parse user data:",
-        error
-      );
+      user = null;
     }
 
-    // No token or user
     if (!token || !user) {
-      navigate("/login");
-      return false;
+      navigate("/login", {
+        replace: true,
+      });
+
+      return;
     }
 
-    // User is not admin
     if (user.role !== "admin") {
-      navigate("/");
-      return false;
+      navigate("/", {
+        replace: true,
+      });
+
+      return;
     }
 
-    return true;
-  };
+    fetchOrders();
+  }, [navigate]);
 
   // =====================================================
-  // FETCH ALL ADMIN ORDERS
+  // FETCH ORDERS
   // =====================================================
 
-  const fetchOrders = useCallback(async () => {
+  const fetchOrders = async (showRefresh = false) => {
     try {
-      setError("");
-
-      // Check authentication before API request
-      if (!checkAdminAccess()) {
-        return;
+      if (showRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
       }
 
-      setLoading(true);
+      setError("");
 
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token");
+
+      if (!token) {
+        navigate("/login", {
+          replace: true,
+        });
+
+        return;
+      }
 
       const response = await fetch(
         `${API_URL}/admin/orders?t=${Date.now()}`,
@@ -82,226 +93,105 @@ function AdminOrders() {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
-            "Cache-Control": "no-cache",
           },
-
-          cache: "no-store",
         }
       );
 
-      let result = {};
-
-      try {
-        result = await response.json();
-      } catch (error) {
-        console.error(
-          "Failed to parse API response:",
-          error
-        );
-      }
+      const result =
+        await response.json();
 
       console.log(
-        "ADMIN ORDERS API RESPONSE:",
+        "ADMIN ORDERS RESPONSE:",
         result
       );
 
-      // =================================================
-      // AUTHENTICATION ERROR
-      // =================================================
-
-      if (
-        response.status === 401 ||
-        response.status === 403
-      ) {
+      if (response.status === 401) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
 
-        navigate("/login");
+        navigate("/login", {
+          replace: true,
+        });
+
         return;
       }
 
-      // =================================================
-      // API ERROR
-      // =================================================
+      if (response.status === 403) {
+        navigate("/", {
+          replace: true,
+        });
 
-      if (!response.ok) {
+        return;
+      }
+
+      if (!response.ok || !result.success) {
         throw new Error(
           result.message ||
-            "Failed to fetch admin orders"
+            "Failed to fetch orders."
         );
       }
 
-      // =================================================
-      // EXTRACT ORDERS
-      // =================================================
-
-      let ordersData = [];
-
-      if (Array.isArray(result)) {
-        ordersData = result;
-      } else if (
+      setOrders(
         Array.isArray(result.data)
-      ) {
-        ordersData = result.data;
-      } else if (
-        Array.isArray(result.orders)
-      ) {
-        ordersData = result.orders;
-      } else if (
-        result.data &&
-        Array.isArray(result.data.orders)
-      ) {
-        ordersData = result.data.orders;
-      }
+          ? result.data
+          : []
+      );
 
-      setOrders(ordersData);
-    } catch (error) {
+    } catch (err) {
       console.error(
         "Admin Orders Error:",
-        error
+        err
       );
 
       setError(
-        error.message ||
-          "Failed to load orders"
+        err.message ||
+          "Unable to load orders."
       );
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, [navigate]);
+  };
 
   // =====================================================
-  // INITIAL LOAD + AUTOMATIC REFRESH
+  // NORMALIZE STATUS
   // =====================================================
 
-  useEffect(() => {
-    fetchOrders();
-
-    const interval = setInterval(() => {
-      fetchOrders();
-    }, 10000);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [fetchOrders]);
+  const getStatus = (order) => {
+    return (
+      order.status ||
+      order.order_status ||
+      "pending"
+    ).toLowerCase();
+  };
 
   // =====================================================
-  // UPDATE ORDER STATUS
+  // STATUS COLOR
   // =====================================================
 
-  const updateOrderStatus = async (
-    orderId,
-    newStatus
-  ) => {
-    if (!orderId || !newStatus) {
-      return;
-    }
+  const getStatusClass = (status) => {
+    switch (status) {
+      case "pending":
+        return "bg-amber-100 text-amber-800 border-amber-200";
 
-    try {
-      if (!checkAdminAccess()) {
-        return;
-      }
+      case "confirmed":
+        return "bg-blue-100 text-blue-800 border-blue-200";
 
-      setUpdatingOrderId(orderId);
-      setError("");
+      case "processing":
+        return "bg-purple-100 text-purple-800 border-purple-200";
 
-      const token =
-        localStorage.getItem("token");
+      case "shipped":
+        return "bg-indigo-100 text-indigo-800 border-indigo-200";
 
-      const response = await fetch(
-        `${API_URL}/admin/orders/${orderId}/status`,
-        {
-          method: "PUT",
+      case "delivered":
+        return "bg-green-100 text-green-800 border-green-200";
 
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+      case "cancelled":
+      case "canceled":
+        return "bg-red-100 text-red-800 border-red-200";
 
-          body: JSON.stringify({
-            status: newStatus,
-          }),
-        }
-      );
-
-      let result = {};
-
-      try {
-        result = await response.json();
-      } catch (error) {
-        console.error(
-          "Failed to parse status update response:",
-          error
-        );
-      }
-
-      console.log(
-        "UPDATE ORDER STATUS RESPONSE:",
-        result
-      );
-
-      // =================================================
-      // AUTH ERROR
-      // =================================================
-
-      if (
-        response.status === 401 ||
-        response.status === 403
-      ) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-
-        navigate("/login");
-        return;
-      }
-
-      // =================================================
-      // API ERROR
-      // =================================================
-
-      if (!response.ok) {
-        throw new Error(
-          result.message ||
-            "Failed to update order status"
-        );
-      }
-
-      // =================================================
-      // UPDATE LOCAL ORDER
-      // =================================================
-
-      setOrders((currentOrders) =>
-        currentOrders.map((order) => {
-          const currentId =
-            order.id ||
-            order.order_id;
-
-          if (
-            String(currentId) ===
-            String(orderId)
-          ) {
-            return {
-              ...order,
-              status: newStatus,
-            };
-          }
-
-          return order;
-        })
-      );
-    } catch (error) {
-      console.error(
-        "Update Order Status Error:",
-        error
-      );
-
-      setError(
-        error.message ||
-          "Failed to update order status"
-      );
-    } finally {
-      setUpdatingOrderId(null);
+      default:
+        return "bg-gray-100 text-gray-700 border-gray-200";
     }
   };
 
@@ -309,455 +199,1204 @@ function AdminOrders() {
   // FORMAT DATE
   // =====================================================
 
-  const formatDate = (dateValue) => {
-    if (!dateValue) {
-      return "N/A";
+  const formatDate = (date) => {
+    if (!date) {
+      return "—";
     }
 
-    try {
-      return new Date(
-        dateValue
-      ).toLocaleString("en-IN", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      });
-    } catch (error) {
-      return "N/A";
+    const parsedDate =
+      new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "—";
     }
-  };
 
-  // =====================================================
-  // GET ORDER TOTAL
-  // =====================================================
-
-  const getOrderTotal = (order) => {
-    return Number(
-      order.total_amount ||
-        order.total ||
-        order.amount ||
-        0
+    return parsedDate.toLocaleDateString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }
     );
   };
 
   // =====================================================
-  // GET ORDER ID
+  // FORMAT TIME
+  // =====================================================
+
+  const formatDateTime = (date) => {
+    if (!date) {
+      return "—";
+    }
+
+    const parsedDate =
+      new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "—";
+    }
+
+    return parsedDate.toLocaleString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+    );
+  };
+
+  // =====================================================
+  // CUSTOMER NAME
+  // =====================================================
+
+  const getCustomerName = (order) => {
+    return (
+      order.customer_name ||
+      order.user_name ||
+      order.name ||
+      order.customer?.name ||
+      order.user?.name ||
+      "Customer"
+    );
+  };
+
+  // =====================================================
+  // CUSTOMER EMAIL
+  // =====================================================
+
+  const getCustomerEmail = (order) => {
+    return (
+      order.customer_email ||
+      order.user_email ||
+      order.email ||
+      order.customer?.email ||
+      order.user?.email ||
+      "No email"
+    );
+  };
+
+  // =====================================================
+  // ORDER TOTAL
+  // =====================================================
+
+  const getOrderTotal = (order) => {
+    const total =
+      order.total_amount ??
+      order.total ??
+      order.grand_total ??
+      order.amount ??
+      0;
+
+    return Number(total) || 0;
+  };
+
+  // =====================================================
+  // ORDER ID
   // =====================================================
 
   const getOrderId = (order) => {
     return (
       order.id ||
       order.order_id ||
-      order.orderId
+      "—"
     );
   };
 
   // =====================================================
-  // GET CUSTOMER NAME
+  // ORDER ITEMS
   // =====================================================
 
-  const getCustomerName = (order) => {
-    return (
-      order.customer_name ||
-      order.customerName ||
-      order.name ||
-      order.user_name ||
-      "Customer"
-    );
+  const getOrderItems = (order) => {
+    if (Array.isArray(order.items)) {
+      return order.items;
+    }
+
+    if (Array.isArray(order.order_items)) {
+      return order.order_items;
+    }
+
+    return [];
   };
 
   // =====================================================
-  // GET CUSTOMER EMAIL
+  // FILTER ORDERS
   // =====================================================
 
-  const getCustomerEmail = (order) => {
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const status =
+        getStatus(order);
+
+      const customerName =
+        getCustomerName(order);
+
+      const customerEmail =
+        getCustomerEmail(order);
+
+      const orderId =
+        String(getOrderId(order));
+
+      const searchValue =
+        search.toLowerCase().trim();
+
+      const matchesSearch =
+        !searchValue ||
+        customerName
+          .toLowerCase()
+          .includes(searchValue) ||
+        customerEmail
+          .toLowerCase()
+          .includes(searchValue) ||
+        orderId
+          .toLowerCase()
+          .includes(searchValue);
+
+      const matchesStatus =
+        statusFilter === "all" ||
+        status === statusFilter;
+
+      return (
+        matchesSearch &&
+        matchesStatus
+      );
+    });
+  }, [
+    orders,
+    search,
+    statusFilter,
+  ]);
+
+  // =====================================================
+  // STATISTICS
+  // =====================================================
+
+  const statistics = useMemo(() => {
+    const totalOrders =
+      orders.length;
+
+    const pendingOrders =
+      orders.filter(
+        (order) =>
+          getStatus(order) ===
+          "pending"
+      ).length;
+
+    const processingOrders =
+      orders.filter(
+        (order) =>
+          getStatus(order) ===
+          "processing"
+      ).length;
+
+    const deliveredOrders =
+      orders.filter(
+        (order) =>
+          getStatus(order) ===
+          "delivered"
+      ).length;
+
+    const revenue =
+      orders.reduce(
+        (sum, order) =>
+          sum + getOrderTotal(order),
+        0
+      );
+
+    return {
+      totalOrders,
+      pendingOrders,
+      processingOrders,
+      deliveredOrders,
+      revenue,
+    };
+  }, [orders]);
+
+  // =====================================================
+  // LOADING
+  // =====================================================
+
+  if (loading) {
     return (
-      order.email ||
-      order.customer_email ||
-      order.customerEmail ||
-      "No email"
-    );
-  };
+      <main className="min-h-screen bg-gradient-to-br from-[#fff8ef] via-[#f8eadb] to-[#efd2b3] flex items-center justify-center px-6">
 
-  // =====================================================
-  // LOADING STATE
-  // =====================================================
+        <div className="text-center">
 
-  if (loading && orders.length === 0) {
-    return (
-      <section className="admin-orders-page">
-        <div className="admin-orders-container">
+          <div className="mx-auto w-14 h-14 rounded-full border-4 border-[#e8c9aa] border-t-[#8b3e12] animate-spin" />
 
-          <div className="admin-orders-loading">
-            <div className="admin-orders-spinner"></div>
+          <h2 className="mt-6 text-2xl font-bold text-[#5a270b]">
+            Loading orders...
+          </h2>
 
-            <p>
-              Loading customer orders...
-            </p>
-          </div>
+          <p className="mt-2 text-[#795548]">
+            Please wait while we fetch your orders.
+          </p>
 
         </div>
-      </section>
+
+      </main>
     );
   }
 
   // =====================================================
-  // MAIN PAGE
+  // ERROR
+  // =====================================================
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-[#fff8ef] via-[#f8eadb] to-[#efd2b3] flex items-center justify-center px-6">
+
+        <div className="bg-white rounded-3xl shadow-xl border border-red-100 p-10 max-w-md w-full text-center">
+
+          <div className="text-6xl">
+            ⚠️
+          </div>
+
+          <h1 className="mt-5 text-3xl font-bold text-[#6b2e0b]">
+            Unable to load orders
+          </h1>
+
+          <p className="mt-4 text-gray-600">
+            {error}
+          </p>
+
+          <button
+            onClick={() =>
+              fetchOrders()
+            }
+            className="mt-7 bg-gradient-to-r from-[#8b3e12] to-[#c45a0a] text-white px-7 py-3 rounded-xl font-bold hover:shadow-lg transition"
+          >
+            Try Again
+          </button>
+
+        </div>
+
+      </main>
+    );
+  }
+
+  // =====================================================
+  // MAIN UI
   // =====================================================
 
   return (
-    <section className="admin-orders-page">
+    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#fff8ef] via-[#f8eadb] to-[#efd2b3] px-4 sm:px-6 py-10">
 
-      <div className="admin-orders-container">
+      {/* =================================================
+          DECORATIVE BACKGROUND
+      ================================================= */}
+
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#d8a477]/20 blur-3xl" />
+
+        <div className="absolute top-1/3 -right-40 w-[450px] h-[450px] rounded-full bg-[#b8794b]/15 blur-3xl" />
+
+        <div className="absolute -bottom-40 left-1/3 w-96 h-96 rounded-full bg-[#e8b98f]/25 blur-3xl" />
+
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto">
 
         {/* =================================================
             HEADER
         ================================================= */}
 
-        <div className="admin-orders-header">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
 
           <div>
 
-            <Link
-              to="/admin/dashboard"
-              className="admin-back-link"
-            >
-              ← Back to Dashboard
-            </Link>
+            <div className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm px-5 py-2 rounded-full shadow-sm border border-[#ead5c0]">
 
-            <p className="admin-orders-label">
-              ADMINISTRATION
-            </p>
+              <span>
+                📦
+              </span>
 
-            <h1>
+              <span className="font-semibold text-[#7a3414]">
+                Order Management
+              </span>
+
+            </div>
+
+            <h1 className="mt-5 text-4xl sm:text-5xl font-extrabold text-[#5a270b] tracking-tight">
               Manage Orders
             </h1>
 
-            <p className="admin-orders-subtitle">
-              View customer orders and update
-              their status.
+            <p className="mt-3 text-[#795548] text-lg">
+              View and manage customer orders from your Chocolate Shop.
             </p>
 
           </div>
 
+          {/* REFRESH */}
+
           <button
-            type="button"
-            className="admin-refresh-button"
-            onClick={fetchOrders}
-            disabled={loading}
+            onClick={() =>
+              fetchOrders(true)
+            }
+            disabled={refreshing}
+            className="self-start lg:self-auto inline-flex items-center gap-2 bg-white border border-[#dfc5ad] text-[#7a3414] px-6 py-3 rounded-xl font-bold shadow-sm hover:bg-[#fff8ef] hover:shadow-md transition disabled:opacity-60"
           >
-            {loading
+
+            <span
+              className={
+                refreshing
+                  ? "animate-spin"
+                  : ""
+              }
+            >
+              🔄
+            </span>
+
+            {refreshing
               ? "Refreshing..."
-              : "↻ Refresh"}
+              : "Refresh Orders"}
+
           </button>
 
         </div>
 
         {/* =================================================
-            ERROR
+            STATISTICS
         ================================================= */}
 
-        {error && (
-          <div className="admin-orders-error">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mt-10">
 
-            <div>
-              ⚠️
+          {/* TOTAL */}
+
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-[#ead5c0] shadow-md p-5">
+
+            <div className="flex items-center justify-between">
+
+              <div>
+                <p className="text-sm text-gray-500">
+                  Total Orders
+                </p>
+
+                <p className="mt-2 text-3xl font-extrabold text-[#5a270b]">
+                  {statistics.totalOrders}
+                </p>
+              </div>
+
+              <div className="w-12 h-12 rounded-xl bg-[#fff0df] flex items-center justify-center text-2xl">
+                📦
+              </div>
+
             </div>
-
-            <div>
-              <strong>
-                Unable to load orders
-              </strong>
-
-              <p>
-                {error}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={fetchOrders}
-            >
-              Try Again
-            </button>
 
           </div>
-        )}
 
-        {/* =================================================
-            ORDER COUNT
-        ================================================= */}
+          {/* PENDING */}
 
-        <div className="admin-orders-summary">
+          <div className="bg-white/95 rounded-2xl border border-[#ead5c0] shadow-md p-5">
 
-          <div>
-            <span>
-              Total Orders
-            </span>
+            <div className="flex items-center justify-between">
 
-            <strong>
-              {orders.length}
-            </strong>
+              <div>
+
+                <p className="text-sm text-gray-500">
+                  Pending
+                </p>
+
+                <p className="mt-2 text-3xl font-extrabold text-amber-700">
+                  {statistics.pendingOrders}
+                </p>
+
+              </div>
+
+              <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-2xl">
+                ⏳
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* PROCESSING */}
+
+          <div className="bg-white/95 rounded-2xl border border-[#ead5c0] shadow-md p-5">
+
+            <div className="flex items-center justify-between">
+
+              <div>
+
+                <p className="text-sm text-gray-500">
+                  Processing
+                </p>
+
+                <p className="mt-2 text-3xl font-extrabold text-purple-700">
+                  {statistics.processingOrders}
+                </p>
+
+              </div>
+
+              <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-2xl">
+                ⚙️
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* DELIVERED */}
+
+          <div className="bg-white/95 rounded-2xl border border-[#ead5c0] shadow-md p-5">
+
+            <div className="flex items-center justify-between">
+
+              <div>
+
+                <p className="text-sm text-gray-500">
+                  Delivered
+                </p>
+
+                <p className="mt-2 text-3xl font-extrabold text-green-700">
+                  {statistics.deliveredOrders}
+                </p>
+
+              </div>
+
+              <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-2xl">
+                ✅
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* REVENUE */}
+
+          <div className="bg-gradient-to-br from-[#6b2e0b] to-[#a84d12] rounded-2xl shadow-lg p-5 text-white">
+
+            <div className="flex items-center justify-between">
+
+              <div>
+
+                <p className="text-sm text-white/80">
+                  Revenue
+                </p>
+
+                <p className="mt-2 text-2xl font-extrabold">
+                  ₹{statistics.revenue.toFixed(2)}
+                </p>
+
+              </div>
+
+              <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center text-2xl">
+                💰
+              </div>
+
+            </div>
+
           </div>
 
         </div>
 
         {/* =================================================
-            NO ORDERS
+            SEARCH + FILTER
         ================================================= */}
 
-        {!error &&
-          orders.length === 0 && (
-            <div className="admin-no-orders">
+        <div className="mt-10 bg-white/95 backdrop-blur-sm rounded-2xl border border-[#ead5c0] shadow-md p-5">
 
-              <div className="admin-no-orders-icon">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
+
+            {/* SEARCH */}
+
+            <div className="relative">
+
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                🔎
+              </span>
+
+              <input
+                type="text"
+                value={search}
+                onChange={(event) =>
+                  setSearch(
+                    event.target.value
+                  )
+                }
+                placeholder="Search by order ID, customer name or email..."
+                className="w-full rounded-xl border border-[#dfcdbb] bg-[#fffaf5] px-12 py-3.5 text-gray-800 outline-none focus:border-[#b84d00] focus:ring-2 focus:ring-[#b84d00]/20"
+              />
+
+            </div>
+
+            {/* FILTER */}
+
+            <select
+              value={statusFilter}
+              onChange={(event) =>
+                setStatusFilter(
+                  event.target.value
+                )
+              }
+              className="rounded-xl border border-[#dfcdbb] bg-[#fffaf5] px-5 py-3.5 text-gray-800 font-semibold outline-none focus:border-[#b84d00] focus:ring-2 focus:ring-[#b84d00]/20"
+            >
+
+              <option value="all">
+                All Statuses
+              </option>
+
+              <option value="pending">
+                Pending
+              </option>
+
+              <option value="confirmed">
+                Confirmed
+              </option>
+
+              <option value="processing">
+                Processing
+              </option>
+
+              <option value="shipped">
+                Shipped
+              </option>
+
+              <option value="delivered">
+                Delivered
+              </option>
+
+              <option value="cancelled">
+                Cancelled
+              </option>
+
+            </select>
+
+          </div>
+
+          <div className="mt-4 text-sm text-gray-500">
+            Showing{" "}
+            <span className="font-bold text-[#7a3414]">
+              {filteredOrders.length}
+            </span>{" "}
+            of{" "}
+            <span className="font-bold text-[#7a3414]">
+              {orders.length}
+            </span>{" "}
+            orders
+          </div>
+
+        </div>
+
+        {/* =================================================
+            ORDERS
+        ================================================= */}
+
+        <div className="mt-8">
+
+          {filteredOrders.length === 0 ? (
+
+            <div className="bg-white/95 rounded-3xl border border-[#ead5c0] shadow-lg p-16 text-center">
+
+              <div className="text-7xl">
                 📦
               </div>
 
-              <h2>
-                No Orders Yet
+              <h2 className="mt-6 text-3xl font-bold text-[#5a270b]">
+                No Orders Found
               </h2>
 
-              <p>
-                Customer orders will appear
-                here when they place an order.
+              <p className="mt-3 text-gray-600">
+                {orders.length === 0
+                  ? "There are no customer orders yet."
+                  : "Try changing your search or status filter."}
               </p>
 
             </div>
-          )}
 
-        {/* =================================================
-            ORDERS LIST
-        ================================================= */}
+          ) : (
 
-        {orders.length > 0 && (
-          <div className="admin-orders-list">
+            <div className="bg-white/95 rounded-3xl border border-[#ead5c0] shadow-xl overflow-hidden">
 
-            {orders.map((order) => {
-              const orderId =
-                getOrderId(order);
+              {/* DESKTOP TABLE */}
 
-              const status =
-                order.status ||
-                "Pending";
+              <div className="hidden lg:block overflow-x-auto">
 
-              const total =
-                getOrderTotal(order);
+                <table className="w-full">
 
-              return (
-                <div
-                  key={orderId}
-                  className="admin-order-card"
-                >
+                  <thead>
 
-                  {/* =========================================
-                      ORDER HEADER
-                  ========================================= */}
+                    <tr className="bg-gradient-to-r from-[#6b2e0b] to-[#8b3e12] text-white">
 
-                  <div className="admin-order-card-header">
+                      <th className="text-left px-6 py-5 text-sm font-bold">
+                        Order
+                      </th>
 
-                    <div>
-
-                      <p className="admin-order-label">
-                        ORDER
-                      </p>
-
-                      <h2>
-                        #
-                        {orderId}
-                      </h2>
-
-                    </div>
-
-                    <span
-                      className={`admin-order-status status-${String(
-                        status
-                      )
-                        .toLowerCase()
-                        .replace(
-                          /\s+/g,
-                          "-"
-                        )}`}
-                    >
-                      {status}
-                    </span>
-
-                  </div>
-
-                  {/* =========================================
-                      CUSTOMER INFORMATION
-                  ========================================= */}
-
-                  <div className="admin-order-details">
-
-                    <div className="admin-order-detail">
-
-                      <span>
+                      <th className="text-left px-6 py-5 text-sm font-bold">
                         Customer
-                      </span>
+                      </th>
 
-                      <strong>
-                        {getCustomerName(
-                          order
-                        )}
-                      </strong>
+                      <th className="text-left px-6 py-5 text-sm font-bold">
+                        Items
+                      </th>
 
-                    </div>
-
-                    <div className="admin-order-detail">
-
-                      <span>
-                        Email
-                      </span>
-
-                      <strong>
-                        {getCustomerEmail(
-                          order
-                        )}
-                      </strong>
-
-                    </div>
-
-                    <div className="admin-order-detail">
-
-                      <span>
-                        Order Date
-                      </span>
-
-                      <strong>
-                        {formatDate(
-                          order.created_at ||
-                            order.createdAt ||
-                            order.order_date ||
-                            order.orderDate
-                        )}
-                      </strong>
-
-                    </div>
-
-                    <div className="admin-order-detail">
-
-                      <span>
+                      <th className="text-left px-6 py-5 text-sm font-bold">
                         Total
-                      </span>
+                      </th>
 
-                      <strong className="admin-order-price">
-                        ₹
-                        {total.toLocaleString(
-                          "en-IN",
-                          {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          }
-                        )}
-                      </strong>
+                      <th className="text-left px-6 py-5 text-sm font-bold">
+                        Date
+                      </th>
 
-                    </div>
+                      <th className="text-left px-6 py-5 text-sm font-bold">
+                        Status
+                      </th>
 
-                  </div>
+                      <th className="text-left px-6 py-5 text-sm font-bold">
+                        Action
+                      </th>
 
-                  {/* =========================================
-                      SHIPPING INFORMATION
-                  ========================================= */}
+                    </tr>
 
-                  {(order.address ||
-                    order.shipping_address ||
-                    order.phone) && (
-                    <div className="admin-shipping-info">
+                  </thead>
 
-                      <h3>
-                        Customer Details
-                      </h3>
+                  <tbody>
 
-                      {order.phone && (
-                        <p>
-                          <strong>
-                            Phone:
-                          </strong>{" "}
-                          {order.phone}
-                        </p>
-                      )}
+                    {filteredOrders.map(
+                      (order) => {
 
-                      {(order.address ||
-                        order.shipping_address) && (
-                        <p>
-                          <strong>
-                            Address:
-                          </strong>{" "}
-                          {order.address ||
-                            order.shipping_address}
-                        </p>
-                      )}
+                        const status =
+                          getStatus(order);
 
-                    </div>
-                  )}
+                        const items =
+                          getOrderItems(order);
 
-                  {/* =========================================
-                      STATUS UPDATE
-                  ========================================= */}
+                        return (
+                          <tr
+                            key={getOrderId(
+                              order
+                            )}
+                            className="border-b border-[#f0dfce] hover:bg-[#fffaf5] transition"
+                          >
 
-                  <div className="admin-order-actions">
+                            {/* ORDER */}
 
-                    <div>
+                            <td className="px-6 py-5">
 
-                      <label
-                        htmlFor={`status-${orderId}`}
-                      >
-                        Update Status
-                      </label>
+                              <p className="font-bold text-[#6b2e0b]">
+                                #{getOrderId(
+                                  order
+                                )}
+                              </p>
 
-                      <select
-                        id={`status-${orderId}`}
-                        value={status}
-                        disabled={
-                          updatingOrderId ===
-                          orderId
-                        }
-                        onChange={(event) =>
-                          updateOrderStatus(
-                            orderId,
-                            event.target.value
-                          )
-                        }
-                      >
+                              <p className="text-xs text-gray-500 mt-1">
+                                Order
+                              </p>
 
-                        {ORDER_STATUSES.map(
-                          (statusOption) => (
-                            <option
-                              key={
-                                statusOption
-                              }
-                              value={
-                                statusOption
-                              }
-                            >
-                              {statusOption}
-                            </option>
-                          )
-                        )}
+                            </td>
 
-                      </select>
+                            {/* CUSTOMER */}
 
-                    </div>
+                            <td className="px-6 py-5">
 
-                    {updatingOrderId ===
-                      orderId && (
-                      <span className="updating-text">
-                        Updating...
-                      </span>
+                              <p className="font-semibold text-gray-800">
+                                {getCustomerName(
+                                  order
+                                )}
+                              </p>
+
+                              <p className="text-sm text-gray-500 mt-1">
+                                {getCustomerEmail(
+                                  order
+                                )}
+                              </p>
+
+                            </td>
+
+                            {/* ITEMS */}
+
+                            <td className="px-6 py-5">
+
+                              {items.length > 0 ? (
+
+                                <div>
+
+                                  <p className="font-semibold text-gray-700">
+                                    {items.length}{" "}
+                                    {items.length ===
+                                    1
+                                      ? "item"
+                                      : "items"}
+                                  </p>
+
+                                  <p className="text-sm text-gray-500 mt-1 max-w-[180px] truncate">
+                                    {items
+                                      .map(
+                                        (item) =>
+                                          item.name ||
+                                          item.product_name ||
+                                          "Product"
+                                      )
+                                      .join(
+                                        ", "
+                                      )}
+                                  </p>
+
+                                </div>
+
+                              ) : (
+
+                                <span className="text-gray-500">
+                                  —
+                                </span>
+
+                              )}
+
+                            </td>
+
+                            {/* TOTAL */}
+
+                            <td className="px-6 py-5">
+
+                              <p className="font-extrabold text-[#b84d00]">
+                                ₹
+                                {getOrderTotal(
+                                  order
+                                ).toFixed(2)}
+                              </p>
+
+                            </td>
+
+                            {/* DATE */}
+
+                            <td className="px-6 py-5">
+
+                              <p className="text-gray-700 font-medium">
+                                {formatDate(
+                                  order.created_at ||
+                                  order.createdAt ||
+                                  order.date
+                                )}
+                              </p>
+
+                            </td>
+
+                            {/* STATUS */}
+
+                            <td className="px-6 py-5">
+
+                              <span
+                                className={`inline-flex px-3 py-1.5 rounded-full border text-xs font-bold capitalize ${getStatusClass(
+                                  status
+                                )}`}
+                              >
+                                {status}
+                              </span>
+
+                            </td>
+
+                            {/* ACTION */}
+
+                            <td className="px-6 py-5">
+
+                              <button
+                                onClick={() =>
+                                  setSelectedOrder(
+                                    order
+                                  )
+                                }
+                                className="px-4 py-2 rounded-lg bg-[#fff0df] text-[#8b3e12] font-bold hover:bg-[#f5dec8] transition"
+                              >
+                                View
+                              </button>
+
+                            </td>
+
+                          </tr>
+                        );
+                      }
                     )}
 
-                  </div>
+                  </tbody>
 
-                </div>
-              );
-            })}
+                </table>
 
-          </div>
-        )}
+              </div>
+
+              {/* MOBILE CARDS */}
+
+              <div className="lg:hidden divide-y divide-[#f0dfce]">
+
+                {filteredOrders.map(
+                  (order) => {
+
+                    const status =
+                      getStatus(order);
+
+                    const items =
+                      getOrderItems(order);
+
+                    return (
+                      <div
+                        key={getOrderId(
+                          order
+                        )}
+                        className="p-5"
+                      >
+
+                        <div className="flex items-start justify-between gap-4">
+
+                          <div>
+
+                            <p className="font-extrabold text-[#6b2e0b]">
+                              #
+                              {getOrderId(
+                                order
+                              )}
+                            </p>
+
+                            <p className="text-sm text-gray-500 mt-1">
+                              {formatDate(
+                                order.created_at ||
+                                order.createdAt ||
+                                order.date
+                              )}
+                            </p>
+
+                          </div>
+
+                          <span
+                            className={`inline-flex px-3 py-1.5 rounded-full border text-xs font-bold capitalize ${getStatusClass(
+                              status
+                            )}`}
+                          >
+                            {status}
+                          </span>
+
+                        </div>
+
+                        <div className="mt-5">
+
+                          <p className="font-bold text-gray-800">
+                            {getCustomerName(
+                              order
+                            )}
+                          </p>
+
+                          <p className="text-sm text-gray-500">
+                            {getCustomerEmail(
+                              order
+                            )}
+                          </p>
+
+                        </div>
+
+                        <div className="mt-5 grid grid-cols-2 gap-4">
+
+                          <div>
+                            <p className="text-xs text-gray-500">
+                              Items
+                            </p>
+
+                            <p className="font-semibold mt-1">
+                              {items.length}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-xs text-gray-500">
+                              Total
+                            </p>
+
+                            <p className="font-extrabold text-[#b84d00] mt-1">
+                              ₹
+                              {getOrderTotal(
+                                order
+                              ).toFixed(2)}
+                            </p>
+                          </div>
+
+                        </div>
+
+                        <button
+                          onClick={() =>
+                            setSelectedOrder(
+                              order
+                            )
+                          }
+                          className="w-full mt-5 bg-[#fff0df] text-[#8b3e12] py-3 rounded-xl font-bold hover:bg-[#f5dec8] transition"
+                        >
+                          View Order Details
+                        </button>
+
+                      </div>
+                    );
+                  }
+                )}
+
+              </div>
+
+            </div>
+
+          )}
+
+        </div>
 
       </div>
 
-    </section>
+      {/* =================================================
+          ORDER DETAILS MODAL
+      ================================================= */}
+
+      {selectedOrder && (
+
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() =>
+            setSelectedOrder(null)
+          }
+        >
+
+          <div
+            className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-2xl"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+
+            {/* MODAL HEADER */}
+
+            <div className="bg-gradient-to-r from-[#6b2e0b] to-[#a84d12] text-white px-6 py-5 flex items-center justify-between">
+
+              <div>
+
+                <p className="text-sm text-white/70">
+                  Order Details
+                </p>
+
+                <h2 className="text-2xl font-extrabold">
+                  #{getOrderId(
+                    selectedOrder
+                  )}
+                </h2>
+
+              </div>
+
+              <button
+                onClick={() =>
+                  setSelectedOrder(null)
+                }
+                className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-xl"
+              >
+                ×
+              </button>
+
+            </div>
+
+            {/* MODAL CONTENT */}
+
+            <div className="p-6">
+
+              {/* CUSTOMER */}
+
+              <div className="bg-[#fff8ef] rounded-2xl p-5 border border-[#ead5c0]">
+
+                <h3 className="font-bold text-[#6b2e0b] text-lg">
+                  Customer Information
+                </h3>
+
+                <div className="mt-4 space-y-2 text-gray-700">
+
+                  <p>
+                    <span className="font-semibold">
+                      Name:
+                    </span>{" "}
+                    {getCustomerName(
+                      selectedOrder
+                    )}
+                  </p>
+
+                  <p>
+                    <span className="font-semibold">
+                      Email:
+                    </span>{" "}
+                    {getCustomerEmail(
+                      selectedOrder
+                    )}
+                  </p>
+
+                  {selectedOrder.phone && (
+                    <p>
+                      <span className="font-semibold">
+                        Phone:
+                      </span>{" "}
+                      {selectedOrder.phone}
+                    </p>
+                  )}
+
+                </div>
+
+              </div>
+
+              {/* ORDER INFO */}
+
+              <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                <div className="rounded-2xl border border-[#ead5c0] p-5">
+
+                  <p className="text-sm text-gray-500">
+                    Order Date
+                  </p>
+
+                  <p className="mt-2 font-bold text-[#6b2e0b]">
+                    {formatDateTime(
+                      selectedOrder.created_at ||
+                      selectedOrder.createdAt ||
+                      selectedOrder.date
+                    )}
+                  </p>
+
+                </div>
+
+                <div className="rounded-2xl border border-[#ead5c0] p-5">
+
+                  <p className="text-sm text-gray-500">
+                    Order Total
+                  </p>
+
+                  <p className="mt-2 text-2xl font-extrabold text-[#b84d00]">
+                    ₹
+                    {getOrderTotal(
+                      selectedOrder
+                    ).toFixed(2)}
+                  </p>
+
+                </div>
+
+              </div>
+
+              {/* ITEMS */}
+
+              <div className="mt-6">
+
+                <h3 className="text-lg font-bold text-[#6b2e0b]">
+                  Order Items
+                </h3>
+
+                <div className="mt-3 rounded-2xl border border-[#ead5c0] overflow-hidden">
+
+                  {getOrderItems(
+                    selectedOrder
+                  ).length > 0 ? (
+
+                    getOrderItems(
+                      selectedOrder
+                    ).map(
+                      (item, index) => {
+
+                        const name =
+                          item.name ||
+                          item.product_name ||
+                          "Product";
+
+                        const quantity =
+                          Number(
+                            item.quantity
+                          ) || 1;
+
+                        const price =
+                          Number(
+                            item.price ||
+                            item.unit_price ||
+                            0
+                          );
+
+                        return (
+                          <div
+                            key={
+                              item.id ||
+                              index
+                            }
+                            className="flex items-center justify-between gap-4 px-5 py-4 border-b last:border-b-0 border-[#f0dfce]"
+                          >
+
+                            <div>
+
+                              <p className="font-bold text-gray-800">
+                                {name}
+                              </p>
+
+                              <p className="text-sm text-gray-500 mt-1">
+                                Quantity:{" "}
+                                {quantity}
+                              </p>
+
+                            </div>
+
+                            <p className="font-bold text-[#b84d00]">
+                              ₹
+                              {(
+                                price *
+                                quantity
+                              ).toFixed(2)}
+                            </p>
+
+                          </div>
+                        );
+                      }
+                    )
+
+                  ) : (
+
+                    <p className="p-5 text-gray-500">
+                      No item details available.
+                    </p>
+
+                  )}
+
+                </div>
+
+              </div>
+
+              {/* SHIPPING ADDRESS */}
+
+              {(selectedOrder.address ||
+                selectedOrder.shipping_address) && (
+
+                <div className="mt-6 bg-[#fff8ef] rounded-2xl p-5 border border-[#ead5c0]">
+
+                  <h3 className="font-bold text-[#6b2e0b] text-lg">
+                    📍 Shipping Address
+                  </h3>
+
+                  <p className="mt-3 text-gray-700 leading-relaxed">
+                    {selectedOrder.address ||
+                      selectedOrder.shipping_address}
+                  </p>
+
+                </div>
+
+              )}
+
+            </div>
+
+            {/* MODAL FOOTER */}
+
+            <div className="px-6 py-5 bg-[#fffaf5] border-t border-[#ead5c0] flex justify-end">
+
+              <button
+                onClick={() =>
+                  setSelectedOrder(null)
+                }
+                className="px-6 py-3 rounded-xl bg-[#6b2e0b] text-white font-bold hover:bg-[#4d2008] transition"
+              >
+                Close
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+    </main>
   );
 }
 

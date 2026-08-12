@@ -1,149 +1,292 @@
-import React from "react";
 import { Link } from "react-router-dom";
-import "./Footer.css";
 
 function Footer() {
-  const currentYear = new Date().getFullYear();
-
   return (
-    <footer className="footer">
+    <footer className="bg-[#4a1f0b] text-[#f8dfc5]">
 
-      <div className="footer-container">
+      {/* =====================================================
+          MAIN FOOTER
+      ===================================================== */}
 
-        {/* Brand */}
+      <div className="max-w-7xl mx-auto px-6 py-16">
 
-        <div className="footer-brand">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
 
-          <Link to="/" className="footer-logo">
-            🍫 Chocolate Shop
-          </Link>
+          {/* =================================================
+              BRAND
+          ================================================= */}
 
-          <p>
-            Handcrafted chocolates made with premium
-            ingredients, passion and lots of love.
-          </p>
+          <div>
 
-          <div className="footer-socials">
-            <a href="#" aria-label="Instagram">
-              Instagram
-            </a>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-3"
+            >
 
-            <a href="#" aria-label="Facebook">
-              Facebook
-            </a>
+              <span className="text-3xl">
+                🍫
+              </span>
 
-            <a href="#" aria-label="WhatsApp">
-              WhatsApp
-            </a>
+              <span className="text-2xl font-extrabold text-white">
+                Chocolate Shop
+              </span>
+
+            </Link>
+
+            <p className="mt-5 text-[#e8cbb3] leading-relaxed">
+              Handcrafted chocolates made with premium
+              ingredients, passion and lots of love.
+            </p>
+
+            {/* SOCIAL LINKS */}
+
+            <div className="flex flex-wrap gap-3 mt-6">
+
+              <a
+                href="#"
+                className="border border-[#8a5637] rounded-lg px-4 py-2 text-sm hover:bg-[#6b2e0b] hover:text-white transition"
+              >
+                Instagram
+              </a>
+
+              <a
+                href="#"
+                className="border border-[#8a5637] rounded-lg px-4 py-2 text-sm hover:bg-[#6b2e0b] hover:text-white transition"
+              >
+                Facebook
+              </a>
+
+              <a
+                href="https://wa.me/919963781985"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="border border-[#8a5637] rounded-lg px-4 py-2 text-sm hover:bg-[#6b2e0b] hover:text-white transition"
+              >
+                WhatsApp
+              </a>
+
+            </div>
+
           </div>
 
-        </div>
+          {/* =================================================
+              QUICK LINKS
+          ================================================= */}
 
+          <div>
 
-        {/* Quick Links */}
+            <h3 className="text-xl font-bold text-white">
+              Quick Links
+            </h3>
 
-        <div className="footer-column">
+            <ul className="mt-5 space-y-3">
 
-          <h3>
-            Quick Links
-          </h3>
+              <li>
+                <Link
+                  to="/"
+                  className="hover:text-white transition"
+                >
+                  Home
+                </Link>
+              </li>
 
-          <Link to="/">
-            Home
-          </Link>
+              <li>
+                <Link
+                  to="/about"
+                  className="hover:text-white transition"
+                >
+                  About Us
+                </Link>
+              </li>
 
-          <Link to="/about">
-            About Us
-          </Link>
+              <li>
+                <Link
+                  to="/products"
+                  className="hover:text-white transition"
+                >
+                  Products
+                </Link>
+              </li>
 
-          <Link to="/products">
-            Products
-          </Link>
+              <li>
+                <Link
+                  to="/cart"
+                  className="hover:text-white transition"
+                >
+                  Cart
+                </Link>
+              </li>
 
-          <Link to="/cart">
-            Cart
-          </Link>
+              <li>
+                <Link
+                  to="/orders"
+                  className="hover:text-white transition"
+                >
+                  My Orders
+                </Link>
+              </li>
 
-          <Link to="/orders">
-            My Orders
-          </Link>
+            </ul>
 
-        </div>
+          </div>
 
+          {/* =================================================
+              CUSTOMER SERVICE
+          ================================================= */}
 
-        {/* Customer Service */}
+          <div>
 
-        <div className="footer-column">
+            <h3 className="text-xl font-bold text-white">
+              Customer Service
+            </h3>
 
-          <h3>
-            Customer Service
-          </h3>
+            <ul className="mt-5 space-y-3">
 
-          <Link to="/checkout">
-            Checkout
-          </Link>
+              <li>
+                <Link
+                  to="/checkout"
+                  className="hover:text-white transition"
+                >
+                  Checkout
+                </Link>
+              </li>
 
-          <Link to="/login">
-            Login
-          </Link>
+              <li>
+                <Link
+                  to="/login"
+                  className="hover:text-white transition"
+                >
+                  Login
+                </Link>
+              </li>
 
-          <Link to="/register">
-            Register
-          </Link>
+              <li>
+                <Link
+                  to="/register"
+                  className="hover:text-white transition"
+                >
+                  Register
+                </Link>
+              </li>
 
-          <a href="mailto:support@chocolateshop.com">
-            Contact Support
-          </a>
+              {/* CONTACT SUPPORT */}
 
-        </div>
+              <li>
+                <Link
+                  to="/contact-support"
+                  className="hover:text-white transition"
+                >
+                  Contact Support
+                </Link>
+              </li>
 
+            </ul>
 
-        {/* Contact */}
+          </div>
 
-        <div className="footer-column footer-contact">
+          {/* =================================================
+              CONTACT US
+          ================================================= */}
 
-          <h3>
-            Contact Us
-          </h3>
+          <div>
 
-          <p>
-            📍 Ongole, Andhra Pradesh
-          </p>
+            <h3 className="text-xl font-bold text-white">
+              Contact Us
+            </h3>
 
-          <p>
-            📞 +91 9963781985
-          </p>
+            <div className="mt-5 space-y-4">
 
-          <p>
-            ✉️ d.sairoshan986@gmail.com
-          </p>
+              {/* LOCATION */}
 
-          <p>
-            🕐 Mon - Sun: 9:00 AM - 7:00 PM
-          </p>
+              <div className="flex items-start gap-3">
+
+                <span className="text-lg">
+                  📍
+                </span>
+
+                <span>
+                  Ongole, Andhra Pradesh
+                </span>
+
+              </div>
+
+              {/* PHONE */}
+
+              <div className="flex items-start gap-3">
+
+                <span className="text-lg">
+                  📞
+                </span>
+
+                <a
+                  href="tel:+919963781985"
+                  className="hover:text-white transition"
+                >
+                  +91 9963781985
+                </a>
+
+              </div>
+
+              {/* EMAIL */}
+
+              <div className="flex items-start gap-3">
+
+                <span className="text-lg">
+                  ✉️
+                </span>
+
+                <a
+                  href="mailto:d.sairoshan986@gmail.com"
+                  className="hover:text-white transition break-all"
+                >
+                  d.sairoshan986@gmail.com
+                </a>
+
+              </div>
+
+              {/* BUSINESS HOURS */}
+
+              <div className="flex items-start gap-3">
+
+                <span className="text-lg">
+                  🕘
+                </span>
+
+                <span>
+                  Mon - Sun: 9:00 AM - 7:00 PM
+                </span>
+
+              </div>
+
+            </div>
+
+          </div>
 
         </div>
 
       </div>
 
+      {/* =====================================================
+          BOTTOM FOOTER
+      ===================================================== */}
 
-      {/* Bottom */}
+      <div className="border-t border-[#6b351b]">
 
-      <div className="footer-bottom">
+        <div className="max-w-7xl mx-auto px-6 py-6">
 
-        <div>
-          © {currentYear} Chocolate Shop.
-          All rights reserved.
-        </div>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
 
-        <div className="footer-bottom-links">
-          <span>
-            Privacy Policy
-          </span>
+            <p className="text-sm text-[#dcbda5] text-center md:text-left">
+              © {new Date().getFullYear()} Chocolate Shop.
+              All rights reserved.
+            </p>
 
-          <span>
-            Terms & Conditions
-          </span>
+            <p className="text-sm text-[#dcbda5]">
+              🍫 Handmade with love
+            </p>
+
+          </div>
+
         </div>
 
       </div>
