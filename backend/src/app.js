@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 
 // =====================================================
 // ROUTES
@@ -8,7 +9,6 @@ const cors = require("cors");
 const authRoutes = require("./routes/authRoutes");
 const productRoutes = require("./routes/productRoutes");
 const orderRoutes = require("./routes/orderRoutes");
-
 const adminRoutes = require("./routes/adminRoutes");
 const adminOrderRoutes = require("./routes/adminOrderRoutes");
 
@@ -23,7 +23,7 @@ const app = express();
 // =====================================================
 
 app.get("/test", (req, res) => {
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     message: "APP.JS IS DEFINITELY RUNNING",
   });
@@ -53,13 +53,38 @@ app.use(
 );
 
 // =====================================================
+// PRODUCT IMAGE FILES
+// =====================================================
+//
+// Uploaded product images are stored in:
+//
+// backend/uploads/products
+//
+// They are accessible from:
+//
+// http://localhost:5000/uploads/products/filename.jpg
+//
+// =====================================================
+
+app.use(
+  "/uploads",
+  express.static(
+    path.join(
+      __dirname,
+      "../uploads"
+    )
+  )
+);
+
+// =====================================================
 // HEALTH CHECK
 // =====================================================
 
 app.get("/", (req, res) => {
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
-    message: "Homemade Chocolate Shop API is running",
+    message:
+      "Homemade Chocolate Shop API is running",
   });
 });
 
@@ -71,66 +96,94 @@ app.get("/", (req, res) => {
 // AUTHENTICATION
 // -----------------------------------------------------
 
-app.use("/api/auth", authRoutes);
+app.use(
+  "/api/auth",
+  authRoutes
+);
 
 // -----------------------------------------------------
 // PRODUCTS
 // -----------------------------------------------------
 
-app.use("/api/products", productRoutes);
+app.use(
+  "/api/products",
+  productRoutes
+);
 
 // -----------------------------------------------------
 // CUSTOMER ORDERS
 // -----------------------------------------------------
 
-app.use("/api/orders", orderRoutes);
+app.use(
+  "/api/orders",
+  orderRoutes
+);
 
 // -----------------------------------------------------
 // ADMIN GENERAL ROUTES
-// /api/admin/test
-// /api/admin/stats
 // -----------------------------------------------------
 
-app.use("/api/admin", adminRoutes);
+app.use(
+  "/api/admin",
+  adminRoutes
+);
 
 // -----------------------------------------------------
 // ADMIN ORDER ROUTES
-// /api/admin/orders
-// /api/admin/orders/:id/status
 // -----------------------------------------------------
 
-app.use("/api/admin", adminOrderRoutes);
+app.use(
+  "/api/admin",
+  adminOrderRoutes
+);
 
 // =====================================================
 // 404 HANDLER
 // =====================================================
 
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: "Route not found",
-  });
-});
+app.use(
+  (req, res) => {
+    return res.status(404).json({
+      success: false,
+      message: "Route not found",
+    });
+  }
+);
 
 // =====================================================
 // GLOBAL ERROR HANDLER
 // =====================================================
 
-app.use((err, req, res, next) => {
-  console.error("GLOBAL ERROR:");
-  console.error(err);
+app.use(
+  (
+    err,
+    req,
+    res,
+    next
+  ) => {
+    console.error(
+      "GLOBAL ERROR:"
+    );
 
-  res.status(err.status || 500).json({
-    success: false,
-    message:
-      err.message || "Internal server error",
+    console.error(err);
 
-    error:
-      process.env.NODE_ENV === "production"
-        ? undefined
-        : err.stack,
-  });
-});
+    return res.status(
+      err.status || 500
+    ).json({
+      success: false,
+
+      message:
+        err.message ||
+        "Internal server error",
+
+      error:
+        process.env.NODE_ENV ===
+        "production"
+          ? undefined
+          : err.stack,
+    });
+  }
+);
 
 // =====================================================
 // EXPORT APP

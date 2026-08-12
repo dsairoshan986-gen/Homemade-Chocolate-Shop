@@ -16,11 +16,19 @@ function AdminDashboard() {
       setError("");
 
       const token = localStorage.getItem("token");
+const user = JSON.parse(
+  localStorage.getItem("user") || "null"
+);
 
-      if (!token) {
-        navigate("/login");
-        return;
-      }
+if (!token || !user) {
+  navigate("/login");
+  return;
+}
+
+if (user.role !== "admin") {
+  navigate("/");
+  return;
+}
 
       const response = await fetch(
         `${API_URL}/admin/orders?t=${Date.now()}`,

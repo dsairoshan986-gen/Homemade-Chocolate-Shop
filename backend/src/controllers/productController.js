@@ -1,22 +1,24 @@
 const productModel = require("../models/productModel");
 
-
 // =====================================================
 // GET ALL PRODUCTS
 // =====================================================
 
 const getProducts = async (req, res) => {
   try {
-    const products = await productModel.getAllProducts();
+    const products =
+      await productModel.getAllProducts();
 
     return res.status(200).json({
       success: true,
       count: products.length,
       data: products,
     });
-
   } catch (error) {
-    console.error("Get Products Error:", error);
+    console.error(
+      "Get Products Error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
@@ -26,16 +28,19 @@ const getProducts = async (req, res) => {
   }
 };
 
-
 // =====================================================
 // GET PRODUCT BY ID
 // =====================================================
 
-const getProductById = async (req, res) => {
+const getProductById = async (
+  req,
+  res
+) => {
   try {
-    const product = await productModel.getProductById(
-      req.params.id
-    );
+    const product =
+      await productModel.getProductById(
+        req.params.id
+      );
 
     if (!product) {
       return res.status(404).json({
@@ -48,9 +53,11 @@ const getProductById = async (req, res) => {
       success: true,
       data: product,
     });
-
   } catch (error) {
-    console.error("Get Product Error:", error);
+    console.error(
+      "Get Product Error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
@@ -60,25 +67,28 @@ const getProductById = async (req, res) => {
   }
 };
 
-
 // =====================================================
 // CREATE PRODUCT - ADMIN
 // =====================================================
 
-const createProduct = async (req, res) => {
+const createProduct = async (
+  req,
+  res
+) => {
   try {
     const {
       name,
       description,
       price,
       category,
-      image_url,
       stock,
       featured,
     } = req.body;
 
+    // =================================================
+    // VALIDATION
+    // =================================================
 
-    // Validate required fields
     if (
       !name ||
       price === undefined ||
@@ -87,63 +97,104 @@ const createProduct = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Name, price, category and stock are required",
+        message:
+          "Name, price, category and stock are required",
       });
     }
 
+    // =================================================
+    // PRICE VALIDATION
+    // =================================================
 
-    // Validate price
     if (Number(price) < 0) {
       return res.status(400).json({
         success: false,
-        message: "Price cannot be negative",
+        message:
+          "Price cannot be negative",
       });
     }
 
+    // =================================================
+    // STOCK VALIDATION
+    // =================================================
 
-    // Validate stock
     if (Number(stock) < 0) {
       return res.status(400).json({
         success: false,
-        message: "Stock cannot be negative",
+        message:
+          "Stock cannot be negative",
       });
     }
 
+    // =================================================
+    // IMAGE URL
+    // =================================================
 
-    const product = await productModel.createProduct({
-      name: name.trim(),
-      description: description || "",
-      price: Number(price),
-      category: category.trim(),
-      image_url: image_url || "",
-      stock: Number(stock),
-      featured: Boolean(featured),
-    });
+    let imageUrl = "";
 
+    if (req.file) {
+      imageUrl =
+        `/uploads/products/${req.file.filename}`;
+    }
+
+    // =================================================
+    // CREATE PRODUCT
+    // =================================================
+
+    const product =
+      await productModel.createProduct({
+        name: name.trim(),
+
+        description:
+          description || "",
+
+        price: Number(price),
+
+        category:
+          category.trim(),
+
+        image_url: imageUrl,
+
+        stock: Number(stock),
+
+        featured:
+          featured === true ||
+          featured === "true",
+      });
+
+    // =================================================
+    // RESPONSE
+    // =================================================
 
     return res.status(201).json({
       success: true,
-      message: "Product created successfully",
+      message:
+        "Product created successfully",
       data: product,
     });
-
   } catch (error) {
-    console.error("Create Product Error:", error);
+    console.error(
+      "Create Product Error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
-      message: "Failed to create product",
+      message:
+        "Failed to create product",
       error: error.message,
     });
   }
 };
 
-
 // =====================================================
 // UPDATE PRODUCT - ADMIN
 // =====================================================
 
-const updateProduct = async (req, res) => {
+const updateProduct = async (
+  req,
+  res
+) => {
   try {
     const { id } = req.params;
 
@@ -152,15 +203,18 @@ const updateProduct = async (req, res) => {
       description,
       price,
       category,
-      image_url,
       stock,
       featured,
     } = req.body;
 
+    // =================================================
+    // CHECK PRODUCT
+    // =================================================
 
-    // Check product exists
     const existingProduct =
-      await productModel.getProductById(id);
+      await productModel.getProductById(
+        id
+      );
 
     if (!existingProduct) {
       return res.status(404).json({
@@ -169,8 +223,10 @@ const updateProduct = async (req, res) => {
       });
     }
 
+    // =================================================
+    // VALIDATION
+    // =================================================
 
-    // Validate required fields
     if (
       !name ||
       price === undefined ||
@@ -179,96 +235,147 @@ const updateProduct = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Name, price, category and stock are required",
+        message:
+          "Name, price, category and stock are required",
       });
     }
 
+    // =================================================
+    // PRICE VALIDATION
+    // =================================================
 
     if (Number(price) < 0) {
       return res.status(400).json({
         success: false,
-        message: "Price cannot be negative",
+        message:
+          "Price cannot be negative",
       });
     }
 
+    // =================================================
+    // STOCK VALIDATION
+    // =================================================
 
     if (Number(stock) < 0) {
       return res.status(400).json({
         success: false,
-        message: "Stock cannot be negative",
+        message:
+          "Stock cannot be negative",
       });
     }
 
+    // =================================================
+    // IMAGE
+    // =================================================
 
-    const product = await productModel.updateProduct(
-      id,
-      {
-        name: name.trim(),
-        description: description || "",
-        price: Number(price),
-        category: category.trim(),
-        image_url: image_url || "",
-        stock: Number(stock),
-        featured: Boolean(featured),
-      }
-    );
+    let imageUrl =
+      existingProduct.image_url ||
+      "";
 
+    // If a new image was selected,
+    // replace the old image URL
+    if (req.file) {
+      imageUrl =
+        `/uploads/products/${req.file.filename}`;
+    }
+
+    // =================================================
+    // UPDATE PRODUCT
+    // =================================================
+
+    const product =
+      await productModel.updateProduct(
+        id,
+        {
+          name: name.trim(),
+
+          description:
+            description || "",
+
+          price: Number(price),
+
+          category:
+            category.trim(),
+
+          image_url: imageUrl,
+
+          stock: Number(stock),
+
+          featured:
+            featured === true ||
+            featured === "true",
+        }
+      );
+
+    // =================================================
+    // RESPONSE
+    // =================================================
 
     return res.status(200).json({
       success: true,
-      message: "Product updated successfully",
+      message:
+        "Product updated successfully",
       data: product,
     });
-
   } catch (error) {
-    console.error("Update Product Error:", error);
+    console.error(
+      "Update Product Error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
-      message: "Failed to update product",
+      message:
+        "Failed to update product",
       error: error.message,
     });
   }
 };
-
 
 // =====================================================
 // DELETE PRODUCT - ADMIN
 // =====================================================
 
-const deleteProduct = async (req, res) => {
+const deleteProduct = async (
+  req,
+  res
+) => {
   try {
     const { id } = req.params;
 
-
-    const product = await productModel.deleteProduct(id);
-
+    const product =
+      await productModel.deleteProduct(
+        id
+      );
 
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: "Product not found",
+        message:
+          "Product not found",
       });
     }
 
-
     return res.status(200).json({
       success: true,
-      message: "Product deleted successfully",
+      message:
+        "Product deleted successfully",
       data: product,
     });
-
   } catch (error) {
-    console.error("Delete Product Error:", error);
+    console.error(
+      "Delete Product Error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
-      message: "Failed to delete product",
+      message:
+        "Failed to delete product",
       error: error.message,
     });
   }
 };
-
 
 // =====================================================
 // EXPORT

@@ -1,99 +1,256 @@
-import React, { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./AdminProducts.css";
 
-import API_URL from "../../config/api";
+// =====================================================
+// EXISTING PRODUCT IMAGES
+// =====================================================
+
+import darkTruffleImage from "../../assets/images/products/dark-truffle.jpg";
+import ferreroImage from "../../assets/images/products/ferrero.jpg";
+import milkChocolateImage from "../../assets/images/products/milk-chocolate.jpg";
+import whiteChocolateImage from "../../assets/images/products/white-chocolate.jpg";
+
+// =====================================================
+// API URL
+// =====================================================
+
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
+
+// =====================================================
+// EXISTING IMAGE HELPER
+// =====================================================
+
+const getImageUrl = (imageUrl) => {
+  if (!imageUrl) {
+    return "";
+  }
+
+  const image = String(imageUrl).trim();
+
+  const imageMap = {
+    "/images/dark-truffle.jpg": darkTruffleImage,
+    "/images/milk-chocolate.jpg": milkChocolateImage,
+    "/images/white-chocolate.jpg": whiteChocolateImage,
+    "/images/ferrero.jpg": ferreroImage,
+
+    "dark-truffle.jpg": darkTruffleImage,
+    "milk-chocolate.jpg": milkChocolateImage,
+    "white-chocolate.jpg": whiteChocolateImage,
+    "ferrero.jpg": ferreroImage,
+  };
+
+  if (imageMap[image]) {
+    return imageMap[image];
+  }
+
+  // Uploaded backend image
+  if (image.startsWith("/uploads/")) {
+    return `http://localhost:5000${image}`;
+  }
+
+  if (
+    image.startsWith("http://") ||
+    image.startsWith("https://")
+  ) {
+    return image;
+  }
+
+  if (image.startsWith("data:image")) {
+    return image;
+  }
+
+  if (image.startsWith("/")) {
+    return image;
+  }
+
+  return `/images/${image}`;
+};
+
+// =====================================================
+// ADMIN PRODUCTS
+// =====================================================
 
 function AdminProducts() {
   const navigate = useNavigate();
 
+  // ===================================================
+  // PRODUCTS
+  // ===================================================
+
   const [products, setProducts] = useState([]);
+
   const [loading, setLoading] = useState(true);
 
-  const [showForm, setShowForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
-
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  // ===================================================
+  // FORM
+  // ===================================================
+
+  const [showForm, setShowForm] = useState(false);
+
+  const [editingProduct, setEditingProduct] =
+    useState(null);
+
+  const [saving, setSaving] = useState(false);
+
+  const [deletingId, setDeletingId] = useState(null);
 
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: "",
-    category: "",
-    image_url: "",
     stock: "",
+    category: "",
     featured: false,
   });
 
-  // =====================================================
-  // GET TOKEN
-  // =====================================================
+  // ===================================================
+  // IMAGE UPLOAD STATE
+  // ===================================================
 
-  const getToken = () => {
-    return localStorage.getItem("token");
-  };
+  const [selectedImage, setSelectedImage] =
+    useState(null);
 
-  // =====================================================
+  const [imagePreview, setImagePreview] =
+    useState("");
+
+  // ===================================================
+  // CHECK ADMIN ACCESS
+  // ===================================================
+
+  const checkAdminAccess = useCallback(() => {
+    const token = localStorage.getItem("token");
+
+    let user = null;
+
+    try {
+      user = JSON.parse(
+        localStorage.getItem("user") || "null"
+      );
+    } catch (error) {
+      console.error(
+        "User JSON parse error:",
+        error
+      );
+    }
+
+    if (!token || !user) {
+      navigate("/login");
+      return false;
+    }
+
+    if (user.role !== "admin") {
+      navigate("/");
+      return false;
+    }
+
+    return true;
+  }, [navigate]);
+
+  // ===================================================
   // FETCH PRODUCTS
-  // =====================================================
+  // ===================================================
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
+
+      if (!checkAdminAccess()) {
+        return;
+      }
+
+      const token =
+        localStorage.getItem("token");
 
       const response = await fetch(
         `${API_URL}/products?t=${Date.now()}`,
         {
           method: "GET",
+
           headers: {
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
             "Cache-Control": "no-cache",
           },
+
           cache: "no-store",
         }
       );
 
       const result = await response.json();
 
-      console.log("PRODUCTS API RESPONSE:", result);
+      console.log(
+        "ADMIN PRODUCTS RESPONSE:",
+        result
+      );
+
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        navigate("/login");
+
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(
-          result?.message || "Failed to fetch products"
+          result.message ||
+            "Failed to fetch products"
         );
       }
 
-      if (result?.success && Array.isArray(result.data)) {
-        setProducts(result.data);
-      } else if (Array.isArray(result)) {
-        setProducts(result);
-      } else {
-        setProducts([]);
+      let productsData = [];
+
+      if (Array.isArray(result)) {
+        productsData = result;
+      } else if (Array.isArray(result.data)) {
+        productsData = result.data;
+      } else if (Array.isArray(result.products)) {
+        productsData = result.products;
+      } else if (
+        result.data &&
+        Array.isArray(result.data.products)
+      ) {
+        productsData =
+          result.data.products;
       }
-    } catch (err) {
-      console.error("Fetch Products Error:", err);
+
+      setProducts(productsData);
+    } catch (error) {
+      console.error(
+        "Fetch Products Error:",
+        error
+      );
 
       setError(
-        err?.message || "Failed to load products"
+        error.message ||
+          "Failed to load products"
       );
     } finally {
       setLoading(false);
     }
-  };
+  }, [checkAdminAccess, navigate]);
 
-  // =====================================================
+  // ===================================================
   // LOAD PRODUCTS
-  // =====================================================
+  // ===================================================
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
 
-  // =====================================================
-  // HANDLE FORM CHANGE
-  // =====================================================
+  // ===================================================
+  // HANDLE TEXT INPUT
+  // ===================================================
 
   const handleChange = (event) => {
     const {
@@ -105,6 +262,7 @@ function AdminProducts() {
 
     setFormData((previous) => ({
       ...previous,
+
       [name]:
         type === "checkbox"
           ? checked
@@ -112,72 +270,165 @@ function AdminProducts() {
     }));
   };
 
-  // =====================================================
+  // ===================================================
+  // HANDLE IMAGE SELECTION
+  // ===================================================
+
+  const handleImageChange = (event) => {
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    // -----------------------------------------------
+    // FILE TYPE VALIDATION
+    // -----------------------------------------------
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setError(
+        "Only JPG, JPEG, PNG and WEBP images are allowed."
+      );
+
+      event.target.value = "";
+
+      return;
+    }
+
+    // -----------------------------------------------
+    // FILE SIZE VALIDATION
+    // -----------------------------------------------
+
+    const maxSize =
+      5 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      setError(
+        "Image must be smaller than 5 MB."
+      );
+
+      event.target.value = "";
+
+      return;
+    }
+
+    // -----------------------------------------------
+    // CLEAR ERROR
+    // -----------------------------------------------
+
+    setError("");
+
+    // -----------------------------------------------
+    // SAVE FILE
+    // -----------------------------------------------
+
+    setSelectedImage(file);
+
+    // -----------------------------------------------
+    // CREATE PREVIEW
+    // -----------------------------------------------
+
+    const previewUrl =
+      URL.createObjectURL(file);
+
+    setImagePreview(previewUrl);
+  };
+
+  // ===================================================
   // RESET FORM
-  // =====================================================
+  // ===================================================
 
   const resetForm = () => {
     setFormData({
       name: "",
       description: "",
       price: "",
-      category: "",
-      image_url: "",
       stock: "",
+      category: "",
       featured: false,
     });
 
+    setSelectedImage(null);
+
+    setImagePreview("");
+
     setEditingProduct(null);
+
     setShowForm(false);
   };
 
-  // =====================================================
+  // ===================================================
   // ADD PRODUCT
-  // =====================================================
+  // ===================================================
 
   const handleAddProduct = () => {
-    setEditingProduct(null);
+    if (!checkAdminAccess()) {
+      return;
+    }
 
-    setFormData({
-      name: "",
-      description: "",
-      price: "",
-      category: "",
-      image_url: "",
-      stock: "",
-      featured: false,
-    });
+    resetForm();
 
-    setMessage("");
-    setError("");
     setShowForm(true);
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    setError("");
   };
 
-  // =====================================================
+  // ===================================================
   // EDIT PRODUCT
-  // =====================================================
+  // ===================================================
 
   const handleEditProduct = (product) => {
+    if (!checkAdminAccess()) {
+      return;
+    }
+
     setEditingProduct(product);
 
     setFormData({
       name: product.name || "",
-      description: product.description || "",
+
+      description:
+        product.description || "",
+
       price: product.price ?? "",
-      category: product.category || "",
-      image_url: product.image_url || "",
+
       stock: product.stock ?? "",
-      featured: Boolean(product.featured),
+
+      category:
+        product.category || "",
+
+      featured:
+        Boolean(product.featured),
     });
 
-    setMessage("");
-    setError("");
+    // Existing image preview
+    const existingImage =
+      product.image_url ||
+      product.image ||
+      "";
+
+    if (existingImage) {
+      setImagePreview(
+        getImageUrl(existingImage)
+      );
+    } else {
+      setImagePreview("");
+    }
+
+    // New image is not selected yet
+    setSelectedImage(null);
+
     setShowForm(true);
+
+    setError("");
 
     window.scrollTo({
       top: 0,
@@ -185,347 +436,325 @@ function AdminProducts() {
     });
   };
 
-  // =====================================================
-  // ADD / UPDATE PRODUCT
-  // =====================================================
+  // ===================================================
+  // SUBMIT PRODUCT
+  // ===================================================
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    setMessage("");
-    setError("");
-
-    // ---------------------------------------------------
-    // VALIDATION
-    // ---------------------------------------------------
-
-    if (!formData.name.trim()) {
-      setError("Product name is required.");
-      return;
-    }
-
-    if (
-      formData.price === "" ||
-      Number(formData.price) < 0
-    ) {
-      setError("Please enter a valid product price.");
-      return;
-    }
-
-    if (
-      formData.stock !== "" &&
-      Number(formData.stock) < 0
-    ) {
-      setError("Stock cannot be negative.");
+    if (!checkAdminAccess()) {
       return;
     }
 
     try {
-      const token = getToken();
+      setSaving(true);
 
-      if (!token) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+      setError("");
 
-        navigate("/login");
-        return;
-      }
+      const token =
+        localStorage.getItem("token");
 
       const isEditing =
         editingProduct !== null;
 
+      const productId =
+        editingProduct?.id ||
+        editingProduct?.product_id;
+
       const url = isEditing
-        ? `${API_URL}/products/${editingProduct.id}`
+        ? `${API_URL}/products/${productId}`
         : `${API_URL}/products`;
 
       const method = isEditing
         ? "PUT"
         : "POST";
 
-      const response = await fetch(url, {
-        method,
+      // =================================================
+      // FORM DATA
+      // =================================================
 
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+      const formDataToSend =
+        new FormData();
 
-        body: JSON.stringify({
-          name: formData.name.trim(),
+      formDataToSend.append(
+        "name",
+        formData.name
+      );
 
-          description:
-            formData.description.trim(),
+      formDataToSend.append(
+        "description",
+        formData.description
+      );
 
-          price: Number(formData.price),
+      formDataToSend.append(
+        "price",
+        formData.price
+      );
 
-          category:
-            formData.category.trim(),
+      formDataToSend.append(
+        "stock",
+        formData.stock
+      );
 
-          image_url:
-            formData.image_url.trim(),
+      formDataToSend.append(
+        "category",
+        formData.category
+      );
 
-          stock: Number(
-            formData.stock || 0
-          ),
+      formDataToSend.append(
+        "featured",
+        String(formData.featured)
+      );
 
-          featured:
-            Boolean(formData.featured),
-        }),
-      });
+      // =================================================
+      // ADD IMAGE
+      // =================================================
 
-      const result = await response.json();
+      if (selectedImage) {
+        formDataToSend.append(
+          "image",
+          selectedImage
+        );
+      }
+
+      // =================================================
+      // API REQUEST
+      // =================================================
+
+      const response = await fetch(
+        url,
+        {
+          method,
+
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+          },
+
+          body: formDataToSend,
+        }
+      );
+
+      const result =
+        await response.json();
 
       console.log(
         "SAVE PRODUCT RESPONSE:",
         result
       );
 
-      // ---------------------------------------------------
+      // =================================================
       // AUTH ERROR
-      // ---------------------------------------------------
+      // =================================================
 
       if (
         response.status === 401 ||
         response.status === 403
       ) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        localStorage.removeItem(
+          "token"
+        );
+
+        localStorage.removeItem(
+          "user"
+        );
 
         navigate("/login");
+
         return;
       }
 
-      // ---------------------------------------------------
+      // =================================================
       // API ERROR
-      // ---------------------------------------------------
+      // =================================================
 
       if (!response.ok) {
         throw new Error(
-          result?.message ||
-            `Failed to ${
-              isEditing
-                ? "update"
-                : "create"
-            } product`
+          result.message ||
+            "Failed to save product"
         );
       }
 
-      // ---------------------------------------------------
+      // =================================================
       // SUCCESS
-      // ---------------------------------------------------
-
-      setMessage(
-        isEditing
-          ? "Product updated successfully!"
-          : "Product added successfully!"
-      );
+      // =================================================
 
       resetForm();
 
       await fetchProducts();
-    } catch (err) {
+    } catch (error) {
       console.error(
         "Save Product Error:",
-        err
+        error
       );
 
       setError(
-        err?.message ||
+        error.message ||
           "Failed to save product"
       );
+    } finally {
+      setSaving(false);
     }
   };
 
-  // =====================================================
+  // ===================================================
   // DELETE PRODUCT
-  // =====================================================
+  // ===================================================
 
-  const handleDeleteProduct = async (
-    productId
-  ) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this product?"
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      setMessage("");
-      setError("");
-
-      const token = getToken();
-
-      if (!token) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-
-        navigate("/login");
+  const handleDeleteProduct =
+    async (product) => {
+      if (!checkAdminAccess()) {
         return;
       }
 
-      const response = await fetch(
-        `${API_URL}/products/${productId}`,
-        {
-          method: "DELETE",
+      const productId =
+        product.id ||
+        product.product_id;
 
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-            "Content-Type":
-              "application/json",
-          },
+      const confirmed =
+        window.confirm(
+          `Are you sure you want to delete "${product.name}"?`
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        setDeletingId(productId);
+
+        setError("");
+
+        const token =
+          localStorage.getItem("token");
+
+        const response =
+          await fetch(
+            `${API_URL}/products/${productId}`,
+            {
+              method: "DELETE",
+
+              headers: {
+                Authorization:
+                  `Bearer ${token}`,
+              },
+            }
+          );
+
+        const result =
+          await response.json();
+
+        if (
+          response.status === 401 ||
+          response.status === 403
+        ) {
+          localStorage.removeItem(
+            "token"
+          );
+
+          localStorage.removeItem(
+            "user"
+          );
+
+          navigate("/login");
+
+          return;
         }
-      );
 
-      const result = await response.json();
+        if (!response.ok) {
+          throw new Error(
+            result.message ||
+              "Failed to delete product"
+          );
+        }
 
-      console.log(
-        "DELETE PRODUCT RESPONSE:",
-        result
-      );
+        setProducts(
+          (previousProducts) =>
+            previousProducts.filter(
+              (item) =>
+                String(
+                  item.id ||
+                    item.product_id
+                ) !==
+                String(productId)
+            )
+        );
+      } catch (error) {
+        console.error(
+          "Delete Product Error:",
+          error
+        );
 
-      // ---------------------------------------------------
-      // AUTH ERROR
-      // ---------------------------------------------------
-
-      if (
-        response.status === 401 ||
-        response.status === 403
-      ) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-
-        navigate("/login");
-        return;
-      }
-
-      // ---------------------------------------------------
-      // API ERROR
-      // ---------------------------------------------------
-
-      if (!response.ok) {
-        throw new Error(
-          result?.message ||
+        setError(
+          error.message ||
             "Failed to delete product"
         );
+      } finally {
+        setDeletingId(null);
       }
+    };
 
-      setMessage(
-        "Product deleted successfully!"
-      );
-
-      await fetchProducts();
-    } catch (err) {
-      console.error(
-        "Delete Product Error:",
-        err
-      );
-
-      setError(
-        err?.message ||
-          "Failed to delete product"
-      );
-    }
-  };
-
-  // =====================================================
-  // FORMAT PRICE
-  // =====================================================
-
-  const formatPrice = (price) => {
-    return Number(price || 0).toLocaleString(
-      "en-IN",
-      {
-        style: "currency",
-        currency: "INR",
-      }
-    );
-  };
-
-  // =====================================================
-  // IMAGE URL
-  // =====================================================
-
-  const getImageUrl = (imageUrl) => {
-    if (!imageUrl) {
-      return "";
-    }
-
-    // Already a complete URL
-    if (
-      imageUrl.startsWith("http://") ||
-      imageUrl.startsWith("https://")
-    ) {
-      return imageUrl;
-    }
-
-    // Local frontend image names
-    const imageName =
-      imageUrl.split("/").pop();
-
-    return `/src/assets/images/products/${imageName}`;
-  };
-
-  // =====================================================
+  // ===================================================
   // LOADING
-  // =====================================================
+  // ===================================================
 
   if (loading) {
     return (
-      <div className="admin-products-page">
+      <section className="admin-products-page">
 
         <div className="admin-products-container">
 
           <div className="admin-products-loading">
+
             <div className="admin-products-spinner"></div>
 
             <p>
               Loading products...
             </p>
+
           </div>
 
         </div>
 
-      </div>
+      </section>
     );
   }
 
-  // =====================================================
+  // ===================================================
   // PAGE
-  // =====================================================
+  // ===================================================
 
   return (
-    <div className="admin-products-page">
+    <section className="admin-products-page">
 
       <div className="admin-products-container">
 
-        {/* =================================================
+        {/* =============================================
+            BACK TO DASHBOARD
+        ============================================== */}
+
+        <div className="admin-products-top">
+
+          <Link
+            to="/admin/dashboard"
+            className="admin-back-link"
+          >
+            ← Back to Dashboard
+          </Link>
+
+        </div>
+
+        {/* =============================================
             HEADER
-        ================================================= */}
+        ============================================== */}
 
         <div className="admin-products-header">
 
           <div>
 
-            {/* IMPORTANT:
-                Use navigate() instead of Link
-                for the dashboard button.
-            */}
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/admin/dashboard")
-              }
-              className="back-link"
-            >
-              ← Back to Dashboard
-            </button>
-
             <p className="admin-products-label">
-              🍫 ADMINISTRATION
+              ADMINISTRATION
             </p>
 
             <h1>
@@ -541,41 +770,53 @@ function AdminProducts() {
 
           <button
             type="button"
+            className="add-product-button"
             onClick={handleAddProduct}
-            className="add-product-btn"
           >
             + Add Product
           </button>
 
         </div>
 
-        {/* =================================================
-            SUCCESS MESSAGE
-        ================================================= */}
-
-        {message && (
-          <div className="admin-products-success">
-            {message}
-          </div>
-        )}
-
-        {/* =================================================
-            ERROR MESSAGE
-        ================================================= */}
+        {/* =============================================
+            ERROR
+        ============================================== */}
 
         {error && (
           <div className="admin-products-error">
 
-            <p>
-              {error}
-            </p>
+            <span>
+              ⚠️
+            </span>
+
+            <div>
+
+              <strong>
+                Error
+              </strong>
+
+              <p>
+                {error}
+              </p>
+
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                fetchProducts();
+              }}
+            >
+              Try Again
+            </button>
 
           </div>
         )}
 
-        {/* =================================================
+        {/* =============================================
             ADD / EDIT FORM
-        ================================================= */}
+        ============================================== */}
 
         {showForm && (
           <div className="product-form-card">
@@ -583,22 +824,25 @@ function AdminProducts() {
             <div className="product-form-header">
 
               <div>
+
+                <p className="section-label">
+                  {editingProduct
+                    ? "EDIT PRODUCT"
+                    : "NEW PRODUCT"}
+                </p>
+
                 <h2>
                   {editingProduct
                     ? "Edit Product"
                     : "Add Product"}
                 </h2>
 
-                <p>
-                  Enter the chocolate product
-                  information below.
-                </p>
               </div>
 
               <button
                 type="button"
+                className="close-form-button"
                 onClick={resetForm}
-                className="close-form-btn"
               >
                 ×
               </button>
@@ -606,21 +850,24 @@ function AdminProducts() {
             </div>
 
             <form
-              onSubmit={handleSubmit}
               className="product-form"
+              onSubmit={handleSubmit}
             >
 
-              {/* NAME */}
+              {/* =======================================
+                  PRODUCT NAME
+              ======================================== */}
 
               <div className="form-group">
 
-                <label>
+                <label htmlFor="name">
                   Product Name
                 </label>
 
                 <input
-                  type="text"
+                  id="name"
                   name="name"
+                  type="text"
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Enter product name"
@@ -629,17 +876,22 @@ function AdminProducts() {
 
               </div>
 
-              {/* DESCRIPTION */}
+              {/* =======================================
+                  DESCRIPTION
+              ======================================== */}
 
               <div className="form-group">
 
-                <label>
+                <label htmlFor="description">
                   Description
                 </label>
 
                 <textarea
+                  id="description"
                   name="description"
-                  value={formData.description}
+                  value={
+                    formData.description
+                  }
                   onChange={handleChange}
                   placeholder="Enter product description"
                   rows="4"
@@ -647,24 +899,27 @@ function AdminProducts() {
 
               </div>
 
-              {/* PRICE + CATEGORY */}
+              {/* =======================================
+                  PRICE + STOCK
+              ======================================== */}
 
-              <div className="form-grid">
+              <div className="form-row">
 
                 <div className="form-group">
 
-                  <label>
-                    Price
+                  <label htmlFor="price">
+                    Price (₹)
                   </label>
 
                   <input
-                    type="number"
+                    id="price"
                     name="price"
+                    type="number"
+                    min="0"
+                    step="0.01"
                     value={formData.price}
                     onChange={handleChange}
                     placeholder="299"
-                    min="0"
-                    step="0.01"
                     required
                   />
 
@@ -672,62 +927,109 @@ function AdminProducts() {
 
                 <div className="form-group">
 
-                  <label>
-                    Category
-                  </label>
-
-                  <input
-                    type="text"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleChange}
-                    placeholder="Chocolate"
-                  />
-
-                </div>
-
-              </div>
-
-              {/* IMAGE URL + STOCK */}
-
-              <div className="form-grid">
-
-                <div className="form-group">
-
-                  <label>
-                    Image URL
-                  </label>
-
-                  <input
-                    type="text"
-                    name="image_url"
-                    value={formData.image_url}
-                    onChange={handleChange}
-                    placeholder="dark-truffle.jpg"
-                  />
-
-                </div>
-
-                <div className="form-group">
-
-                  <label>
+                  <label htmlFor="stock">
                     Stock
                   </label>
 
                   <input
-                    type="number"
+                    id="stock"
                     name="stock"
+                    type="number"
+                    min="0"
                     value={formData.stock}
                     onChange={handleChange}
                     placeholder="50"
-                    min="0"
+                    required
                   />
 
                 </div>
 
               </div>
 
-              {/* FEATURED */}
+              {/* =======================================
+                  CATEGORY
+              ======================================== */}
+
+              <div className="form-group">
+
+                <label htmlFor="category">
+                  Category
+                </label>
+
+                <input
+                  id="category"
+                  name="category"
+                  type="text"
+                  value={formData.category}
+                  onChange={handleChange}
+                  placeholder="Chocolate"
+                  required
+                />
+
+              </div>
+
+              {/* =======================================
+                  CHOOSE PRODUCT IMAGE
+              ======================================== */}
+
+              <div className="form-group">
+
+                <label htmlFor="product-image">
+                  Product Image
+                </label>
+
+                <input
+                  id="product-image"
+                  name="image"
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                  onChange={handleImageChange}
+                />
+
+                <small>
+                  JPG, JPEG, PNG or WEBP.
+                  Maximum 5 MB.
+                </small>
+
+              </div>
+
+              {/* =======================================
+                  IMAGE PREVIEW
+              ======================================== */}
+
+              {imagePreview && (
+                <div className="product-image-preview">
+
+                  <p>
+                    Image Preview
+                  </p>
+
+                  <img
+                    src={imagePreview}
+                    alt="Selected product"
+                    style={{
+                      width: "180px",
+                      height: "180px",
+                      objectFit: "cover",
+                      borderRadius: "12px",
+                      display: "block",
+                    }}
+                  />
+
+                  {selectedImage && (
+                    <p>
+                      Selected:
+                      {" "}
+                      {selectedImage.name}
+                    </p>
+                  )}
+
+                </div>
+              )}
+
+              {/* =======================================
+                  FEATURED
+              ======================================== */}
 
               <div className="form-checkbox">
 
@@ -736,7 +1038,9 @@ function AdminProducts() {
                   <input
                     type="checkbox"
                     name="featured"
-                    checked={formData.featured}
+                    checked={
+                      formData.featured
+                    }
                     onChange={handleChange}
                   />
 
@@ -748,25 +1052,31 @@ function AdminProducts() {
 
               </div>
 
-              {/* BUTTONS */}
+              {/* =======================================
+                  FORM BUTTONS
+              ======================================== */}
 
-              <div className="form-actions">
-
-                <button
-                  type="submit"
-                  className="save-product-btn"
-                >
-                  {editingProduct
-                    ? "Update Product"
-                    : "Add Product"}
-                </button>
+              <div className="product-form-actions">
 
                 <button
                   type="button"
+                  className="cancel-button"
                   onClick={resetForm}
-                  className="cancel-product-btn"
+                  disabled={saving}
                 >
                   Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="save-product-button"
+                  disabled={saving}
+                >
+                  {saving
+                    ? "Uploading..."
+                    : editingProduct
+                    ? "Update Product"
+                    : "Add Product"}
                 </button>
 
               </div>
@@ -776,58 +1086,66 @@ function AdminProducts() {
           </div>
         )}
 
-        {/* =================================================
-            PRODUCTS COUNT
-        ================================================= */}
+        {/* =============================================
+            PRODUCT COUNT
+        ============================================== */}
 
-        <div className="products-summary">
+        <div className="products-count-section">
 
           <div>
-            All Products
-          </div>
 
-          <strong>
-            {products.length} Products
-          </strong>
+            <p>
+              All Products
+            </p>
+
+            <span>
+              {products.length}{" "}
+              {products.length === 1
+                ? "Product"
+                : "Products"}
+            </span>
+
+          </div>
 
         </div>
 
-        {/* =================================================
-            EMPTY PRODUCTS
-        ================================================= */}
+        {/* =============================================
+            NO PRODUCTS
+        ============================================== */}
 
-        {products.length === 0 ? (
+        {!error &&
+          products.length === 0 && (
+            <div className="no-products">
 
-          <div className="no-products">
+              <div className="no-products-icon">
+                🍫
+              </div>
 
-            <div className="no-products-icon">
-              🍫
+              <h2>
+                No Products Found
+              </h2>
+
+              <p>
+                Add your first chocolate
+                product to the store.
+              </p>
+
+              <button
+                type="button"
+                onClick={handleAddProduct}
+                className="add-product-button"
+              >
+                + Add Product
+              </button>
+
             </div>
+          )}
 
-            <h2>
-              No products found
-            </h2>
+        {/* =============================================
+            PRODUCTS TABLE
+        ============================================== */}
 
-            <p>
-              Add your first chocolate product.
-            </p>
-
-            <button
-              type="button"
-              onClick={handleAddProduct}
-              className="add-product-btn"
-            >
-              + Add Product
-            </button>
-
-          </div>
-
-        ) : (
-
-          /* =================================================
-              PRODUCTS TABLE
-          ================================================= */
-
+        {products.length > 0 && (
           <div className="products-table-wrapper">
 
             <table className="products-table">
@@ -867,157 +1185,193 @@ function AdminProducts() {
               <tbody>
 
                 {products.map(
-                  (product) => (
+                  (product) => {
+                    const productId =
+                      product.id ||
+                      product.product_id;
 
-                    <tr
-                      key={product.id}
-                    >
+                    const imageValue =
+                      product.image_url ||
+                      product.image ||
+                      "";
 
-                      {/* PRODUCT */}
+                    const imageUrl =
+                      getImageUrl(
+                        imageValue
+                      );
 
-                      <td>
+                    return (
+                      <tr
+                        key={productId}
+                      >
 
-                        <div className="product-info">
+                        {/* PRODUCT */}
 
-                          {product.image_url ? (
+                        <td>
 
-                            <img
-                              src={getImageUrl(
-                                product.image_url
-                              )}
-                              alt={
-                                product.name
-                              }
-                              className="product-image"
-                              onError={(event) => {
-                                event.currentTarget.style.display =
-                                  "none";
-                              }}
-                            />
+                          <div className="product-info">
 
-                          ) : (
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={
+                                  product.name ||
+                                  "Chocolate product"
+                                }
+                                className="product-image"
+                                onError={(
+                                  event
+                                ) => {
+                                  console.error(
+                                    "Product image failed:",
+                                    imageUrl
+                                  );
 
-                            <div className="product-placeholder">
-                              🍫
+                                  event.currentTarget.style.display =
+                                    "none";
+                                }}
+                              />
+                            ) : (
+                              <div className="product-image-placeholder">
+                                🍫
+                              </div>
+                            )}
+
+                            <div>
+
+                              <strong>
+                                {product.name}
+                              </strong>
+
+                              <p>
+                                {product.description
+                                  ? product.description.substring(
+                                      0,
+                                      80
+                                    )
+                                  : "No description available"}
+                              </p>
+
                             </div>
-
-                          )}
-
-                          <div>
-
-                            <strong>
-                              {product.name}
-                            </strong>
-
-                            <p>
-                              {product.description
-                                ? product.description.substring(
-                                    0,
-                                    80
-                                  )
-                                : "No description"}
-                            </p>
 
                           </div>
 
-                        </div>
+                        </td>
 
-                      </td>
+                        {/* CATEGORY */}
 
-                      {/* CATEGORY */}
+                        <td>
+                          {product.category ||
+                            "Chocolate"}
+                        </td>
 
-                      <td>
-                        {product.category ||
-                          "—"}
-                      </td>
+                        {/* PRICE */}
 
-                      {/* PRICE */}
+                        <td>
 
-                      <td>
+                          <strong>
+                            ₹
+                            {Number(
+                              product.price ||
+                                0
+                            ).toLocaleString(
+                              "en-IN",
+                              {
+                                minimumFractionDigits:
+                                  2,
+                                maximumFractionDigits:
+                                  2,
+                              }
+                            )}
+                          </strong>
 
-                        <strong>
-                          {formatPrice(
-                            product.price
+                        </td>
+
+                        {/* STOCK */}
+
+                        <td>
+
+                          <span
+                            className={`stock-badge ${
+                              Number(
+                                product.stock ||
+                                  0
+                              ) <= 0
+                                ? "out-of-stock"
+                                : Number(
+                                    product.stock ||
+                                      0
+                                  ) <= 10
+                                ? "low-stock"
+                                : "in-stock"
+                            }`}
+                          >
+                            {product.stock ??
+                              0}
+                          </span>
+
+                        </td>
+
+                        {/* FEATURED */}
+
+                        <td>
+
+                          {product.featured ? (
+                            <span className="featured-badge">
+                              Yes
+                            </span>
+                          ) : (
+                            <span className="not-featured-badge">
+                              No
+                            </span>
                           )}
-                        </strong>
 
-                      </td>
+                        </td>
 
-                      {/* STOCK */}
+                        {/* ACTIONS */}
 
-                      <td>
+                        <td>
 
-                        <span
-                          className={
-                            Number(
-                              product.stock
-                            ) <= 5
-                              ? "low-stock"
-                              : "stock"
-                          }
-                        >
-                          {product.stock ?? 0}
-                        </span>
+                          <div className="product-actions">
 
-                      </td>
+                            <button
+                              type="button"
+                              className="edit-button"
+                              onClick={() =>
+                                handleEditProduct(
+                                  product
+                                )
+                              }
+                            >
+                              Edit
+                            </button>
 
-                      {/* FEATURED */}
+                            <button
+                              type="button"
+                              className="delete-button"
+                              onClick={() =>
+                                handleDeleteProduct(
+                                  product
+                                )
+                              }
+                              disabled={
+                                deletingId ===
+                                productId
+                              }
+                            >
+                              {deletingId ===
+                              productId
+                                ? "Deleting..."
+                                : "Delete"}
+                            </button>
 
-                      <td>
+                          </div>
 
-                        {product.featured ? (
+                        </td>
 
-                          <span className="featured-badge">
-                            Featured
-                          </span>
-
-                        ) : (
-
-                          <span className="not-featured">
-                            —
-                          </span>
-
-                        )}
-
-                      </td>
-
-                      {/* ACTIONS */}
-
-                      <td>
-
-                        <div className="product-actions">
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleEditProduct(
-                                product
-                              )
-                            }
-                            className="edit-btn"
-                          >
-                            Edit
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleDeleteProduct(
-                                product.id
-                              )
-                            }
-                            className="delete-btn"
-                          >
-                            Delete
-                          </button>
-
-                        </div>
-
-                      </td>
-
-                    </tr>
-
-                  )
+                      </tr>
+                    );
+                  }
                 )}
 
               </tbody>
@@ -1025,12 +1379,11 @@ function AdminProducts() {
             </table>
 
           </div>
-
         )}
 
       </div>
 
-    </div>
+    </section>
   );
 }
 

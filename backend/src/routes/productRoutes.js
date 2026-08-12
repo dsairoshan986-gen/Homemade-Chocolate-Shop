@@ -2,53 +2,81 @@ const express = require("express");
 
 const router = express.Router();
 
+// =====================================================
+// CONTROLLER
+// =====================================================
+
 const productController = require("../controllers/productController");
 
+// =====================================================
+// MIDDLEWARE
+// =====================================================
+
 const authMiddleware = require("../middleware/authMiddleware");
+
 const adminMiddleware = require("../middleware/adminMiddleware");
 
+const upload = require("../middleware/uploadMiddleware");
 
 // =====================================================
 // PUBLIC PRODUCT ROUTES
 // =====================================================
 
-// Get all products
+// -----------------------------------------------------
+// GET ALL PRODUCTS
+// GET /api/products
+// -----------------------------------------------------
+
 router.get(
   "/",
   productController.getProducts
 );
 
+// -----------------------------------------------------
+// GET PRODUCT BY ID
+// GET /api/products/:id
+// -----------------------------------------------------
 
-// Get product by ID
 router.get(
   "/:id",
   productController.getProductById
 );
 
-
 // =====================================================
 // ADMIN PRODUCT ROUTES
 // =====================================================
 
-// Create product
+// -----------------------------------------------------
+// CREATE PRODUCT
+// POST /api/products
+// -----------------------------------------------------
+
 router.post(
   "/",
   authMiddleware,
   adminMiddleware,
+  upload.single("image"),
   productController.createProduct
 );
 
+// -----------------------------------------------------
+// UPDATE PRODUCT
+// PUT /api/products/:id
+// -----------------------------------------------------
 
-// Update product
 router.put(
   "/:id",
   authMiddleware,
   adminMiddleware,
+  upload.single("image"),
   productController.updateProduct
 );
 
+// -----------------------------------------------------
+// DELETE PRODUCT
+// DELETE /api/products/:id
+// -----------------------------------------------------
 
-// Delete product
 router.delete(
   "/:id",
   authMiddleware,
@@ -56,5 +84,8 @@ router.delete(
   productController.deleteProduct
 );
 
+// =====================================================
+// EXPORT
+// =====================================================
 
 module.exports = router;
